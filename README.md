@@ -1,0 +1,160 @@
+PopMaint
+========
+
+TODO
+----
+* `pkg/mssqlz`
+    * Convert FQDN, host and database to pool
+    * ✅ `OnlineDatabases()` - Query server and get databases to defrag
+    * `Outputer` interface
+    * `pkg/mssql/execmon`
+    * `sqlexp`
+* `/pkg/app`
+    * 
+* `/pkg/maint`
+    * ✅ Defrag host/database and write results - Passed an FQDN, database
+    * ✅ Defrag one by one until done
+
+Architecture
+------------
+```
+/cmd/defrag/main.go
+    app.DefragHost(fqdn) -- keeps state and restart
+        mssqz.OnlineDatabases(fqdn)
+        maint.Defrag(fqdn, database)
+```
+* Build `App` struct that the `Config` structs hang off
+* Also that state stuff hangs off
+
+File Structure
+--------------
+```
+logs/
+├─ json/
+└─ text/
+   └─ 240712_130214_plan1_log
+state/
+└─ plan1.state.json
+popmaint.exe
+popmaint.toml
+plan1.toml
+plan2.toml
+```
+
+
+
+Storing State
+-------------
+* Need to handle read-only databases
+* Need to handle databases that come and go
+* State struct
+    * Key(domain, computer, instance, database) 
+    * Value: last DBCC in UTC, last dbcc settings
+    * Saved in `plan1.state.json
+* Maybe a state log that stores each event.  But it will get big.  Maybe compress on startup.
+* Read in the state and update it as we go.  Write with each update.
+
+Finding Work
+------------
+* Get all the databases
+* Go get the the last DBCC from state
+* Sort by oldest DBCC, largest database
+* Maybe read-only gets done less frequently?  Only show up every X days?
+* Have a minimum number of days before we retest
+
+Before Test
+-----------
+* Skip any server before SQL Server 2014
+* Command-line options
+    * ✅ FQDN
+    * ✅ Settings: noindex, physical only, max database size
+* Log to file and console
+    * Purge old log files
+    * `popmaint_yymmdd_hhmmss_plan.(log|json)`
+
+Fun Stuff
+---------
+* Parse the duration and limit it
+* Write sql.Rows to a log file
+* Write the log file and rotate it
+
+Read-Only Databases
+-------------------
+* Need to store state with the executable
+* Write a 
+
+Next Test #1
+------------
+* Monitor for blocking or blocked by and abort (EXECMON)
+* Use `/pkg/execmon` to defrag
+
+Next Test #2
+------------
+* More DBCC options
+* Get all the databases from all the servers.  Sort oldestest, then largest, and go as afar as we can
+* Add a time limit
+* MAXDOP as pct/value
+* database (optional)
+* EXTENDED_LOGICAL_CHECKS, data purity
+
+TOML Plan File - core-us-kc, core-br, uskc-epay, uskc-eft,
+---------
+```toml
+servers = ["ab", "c"]
+time_limit = "4h"
+min_repeat_days = 7 # wait at least this long to defrag
+
+[checkdb]
+time_limit = "2h"
+no_index = true
+messages = true
+max_size_mb = 100
+
+[defrag]
+[backup]
+[server.abc]
+checkdb.exclude = ["a", "b", "c"]
+```
+
+TOML App File - `popmaint.toml`
+-------------------------------
+[logging]
+retain_days = 30
+
+[logging.text]
+[logging.json]
+[logging.console]
+
+
+Appify
+------
+* Server list in file
+* DBCC settings in file
+* Save state based on this combo
+* Write log file based on this combo
+* Write log files to NDJSON format
+
+Messages
+--------
+* Return 
+    * message: text, JSON, stdout
+    * error: text, JSON, stdout
+    * RowSet: text, stdout
+* Writer vs Logger, one vs many
+* JSON is only for ELK
+* Options
+    * Output that has message, error or RowSet
+    * Send the results on a channel and something else handles them
+    * Pass in a Writer
+    * Pass in a "thing"
+* "Thing" - Write message, write error, write RowSet
+
+Maybe Future?
+-------------
+* Split up databases based on hash of the domain, server, instance, database
+* Don't run on primary? or synchronous node?  Or a flag for that?
+
+
+Issues
+------
+* If an error occurs, keep going.  But fail the EXE after we are done.
