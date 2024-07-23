@@ -9,7 +9,7 @@ import (
 	"github.com/billgraziano/mssqlh"
 )
 
-type DefragOptions struct {
+type CheckDBOptions struct {
 	NoExec       bool
 	NoIndex      bool
 	InfoMessage  bool
@@ -19,7 +19,7 @@ type DefragOptions struct {
 	// DataPurity            bool
 }
 
-func CheckDB(ctx context.Context, out mssqlz.Outputer, host string, db mssqlz.Database, do DefragOptions) error {
+func CheckDB(ctx context.Context, out mssqlz.Outputer, host string, db mssqlz.Database, do CheckDBOptions) error {
 	pool, err := mssqlh.Open(host, "master")
 	if err != nil {
 		return err
@@ -33,7 +33,7 @@ func CheckDB(ctx context.Context, out mssqlz.Outputer, host string, db mssqlz.Da
 	return err
 }
 
-func makeStatement(db string, do DefragOptions) string {
+func makeStatement(db string, do CheckDBOptions) string {
 	stmt := fmt.Sprintf("DBCC CHECKDB(%s", mssqlh.QuoteName(db))
 	if do.NoIndex {
 		stmt += ", NOINDEX"

@@ -6,12 +6,13 @@ import (
 	"log"
 	"popmaint/pkg/app"
 	"popmaint/pkg/maint"
+	"popmaint/pkg/state"
 )
 
 func main() {
 	out := app.OutWriter{}
 	ctx := context.Background()
-	do := maint.DefragOptions{}
+	do := maint.CheckDBOptions{}
 	var fqdn string
 
 	flag.BoolVar(&do.NoIndex, "noindex", false, "Set the NOINDEX option")
@@ -27,7 +28,13 @@ func main() {
 	}
 	// log settings:
 	out.WriteStringf("host: %s  noindex: %t  messages: %t  physical_only: %t  max_size: %d", fqdn, do.NoIndex, do.InfoMessage, do.PhysicalOnly, do.MaxSizeMB)
-	err := app.CheckDB(ctx, &out, fqdn, do)
+	st, err := state.NewState("Plan1")
+	if err != nil {
+		out.WriteError(err)
+		return
+	}
+	ce := app.NewCheckDBEngine(&out, st, do)
+	err = ce.CheckDB(ctx, fqdn)
 	if err != nil {
 		out.WriteError(err)
 	}

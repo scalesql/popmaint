@@ -2,6 +2,7 @@ package mssqlz
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/billgraziano/mssqlh"
@@ -9,6 +10,8 @@ import (
 	_ "github.com/microsoft/go-mssqldb"
 )
 
+// Database holds information about a SQL Server database.  It is
+// primarily used for CheckDB.
 type Database struct {
 	FQDN           string
 	DatabaseName   string    `db:"database_name"`
@@ -23,6 +26,14 @@ type Database struct {
 	MajorVersion   int    `db:"major_version"`
 	MaxDop         int
 	CPUCount       int `db:"cpu_count"`
+}
+
+// Path returns a string in the format /domain/computer/instance/database.  This is used
+// as a key in maps for the database.
+func (db Database) Path() string {
+	str := "/" + strings.Join([]string{db.Domain, db.Computer, db.Instance, db.DatabaseName}, "/")
+	//str = strings.ToLower(str)
+	return str
 }
 
 // OnlineDatabases returns a list of datbases that are online.  It includes system databases.
@@ -47,8 +58,7 @@ var dblistQuery = `
 
 ;WITH CTE AS (
 	SELECT	d.[name] AS [database_name],
-			(sum(size)/128) as [database_mb],
-			DATABASEPROPERTYEX(d.[name], 'LastGoodCheckDbTime') as last_dbcc
+			(sum(size)/128) as [database_mb]
 	FROM	sys.databases d
 	JOIN	sys.master_files mf ON mf.database_id = d.database_id
 	WHERE	mf.[type] = 0

@@ -26,6 +26,10 @@ Architecture
 * Build `App` struct that the `Config` structs hang off
 * Also that state stuff hangs off
 
+Terminology
+-----------
+* Action - DBCC(CheckDB), Defrag, Backup, Stats, CleanUp
+
 File Structure
 --------------
 ```
@@ -45,14 +49,19 @@ plan2.toml
 
 Storing State
 -------------
+* State needs to support all actions
 * Need to handle read-only databases
 * Need to handle databases that come and go
 * State struct
     * Key(domain, computer, instance, database) 
-    * Value: last DBCC in UTC, last dbcc settings
-    * Saved in `plan1.state.json
+    * Value: last DBCC, last dbcc settings, last seen
+    * Saved in `./state/plan1.state.json`
 * Maybe a state log that stores each event.  But it will get big.  Maybe compress on startup.
 * Read in the state and update it as we go.  Write with each update.
+* DBCCEngine
+    DBCCState - struct that holds all the DBCC we have done
+    CheckDB(...)
+
 
 Finding Work
 ------------
@@ -153,8 +162,9 @@ Maybe Future?
 -------------
 * Split up databases based on hash of the domain, server, instance, database
 * Don't run on primary? or synchronous node?  Or a flag for that?
-
+* Panic Handler
 
 Issues
 ------
-* If an error occurs, keep going.  But fail the EXE after we are done.
+* If an error occurs, log it, and keep going.  But fail the EXE after we are done.
+    * Rebooting server, permission, etc.
