@@ -8,6 +8,7 @@ import (
 type Outputer interface {
 	WriteMessage(sqlexp.MsgNotice) error
 	WriteError(error) error
+	WriteErrorf(string, ...any) error
 	WriteRowSet() error
 	WriteString(string) error
 	WriteStringf(string, ...any) error

@@ -45,24 +45,6 @@ plan1.toml
 plan2.toml
 ```
 
-
-
-Storing State
--------------
-* State needs to support all actions
-* Need to handle read-only databases
-* Need to handle databases that come and go
-* State struct
-    * Key(domain, computer, instance, database) 
-    * Value: last DBCC, last dbcc settings, last seen
-    * Saved in `./state/plan1.state.json`
-* Maybe a state log that stores each event.  But it will get big.  Maybe compress on startup.
-* Read in the state and update it as we go.  Write with each update.
-* DBCCEngine
-    DBCCState - struct that holds all the DBCC we have done
-    CheckDB(...)
-
-
 Finding Work
 ------------
 * Get all the databases
@@ -86,11 +68,6 @@ Fun Stuff
 * Parse the duration and limit it
 * Write sql.Rows to a log file
 * Write the log file and rotate it
-
-Read-Only Databases
--------------------
-* Need to store state with the executable
-* Write a 
 
 Next Test #1
 ------------

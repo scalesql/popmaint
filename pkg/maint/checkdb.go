@@ -3,6 +3,7 @@ package maint
 import (
 	"context"
 	"fmt"
+	"popmaint/pkg/config.go"
 	"popmaint/pkg/mssqlz"
 	"strings"
 
@@ -19,31 +20,31 @@ type CheckDBOptions struct {
 	// DataPurity            bool
 }
 
-func CheckDB(ctx context.Context, out mssqlz.Outputer, host string, db mssqlz.Database, do CheckDBOptions) error {
+func CheckDB(ctx context.Context, out mssqlz.Outputer, host string, db mssqlz.Database, plan config.Plan, noexec bool) error {
 	pool, err := mssqlh.Open(host, "master")
 	if err != nil {
 		return err
 	}
 	defer pool.Close()
-	stmt := makeStatement(db.DatabaseName, do)
-	out.WriteStringf("%s: %s (size_mb=%d  last_dbcc=%s)", db.DatabaseName, stmt, db.DatabaseMB, db.LastDBCC.Format("2006-01-02 15:04:05"))
-	if !do.NoExec {
+	stmt := makeStatement(db.DatabaseName, plan)
+	out.WriteStringf("%s: %s: %s", db.ServerName, db.DatabaseName, stmt)
+	if !noexec {
 		err = mssqlz.ExecContext(ctx, pool, stmt, out)
 	}
 	return err
 }
 
-func makeStatement(db string, do CheckDBOptions) string {
+func makeStatement(db string, plan config.Plan) string {
 	stmt := fmt.Sprintf("DBCC CHECKDB(%s", mssqlh.QuoteName(db))
-	if do.NoIndex {
+	if plan.CheckDB.NoIndex {
 		stmt += ", NOINDEX"
 	}
 	stmt += ")"
 	clauses := make([]string, 0)
-	if !do.InfoMessage {
+	if !plan.CheckDB.InfoMessages {
 		clauses = append(clauses, "NO_INFOMSGS")
 	}
-	if do.PhysicalOnly {
+	if plan.CheckDB.PhysicalOnly {
 		clauses = append(clauses, "PHYSICAL_ONLY")
 	}
 	if len(clauses) > 0 {

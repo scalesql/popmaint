@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+var ErrClosed = errors.New("state is closed")
+
 // State captures the state so that we don't need to recreate it.
 // It currently only supports the last CheckDB date.
 // Defrag will likely just be a map of pending work.
@@ -19,6 +21,7 @@ import (
 // the database.
 type State struct {
 	mu       *sync.RWMutex
+	closed   bool
 	fileName string
 	Plan     string `json:"plan"`
 	CheckDB  struct {
@@ -49,15 +52,29 @@ func NewState(plan string) (*State, error) {
 	return &st, nil
 }
 
-func (st *State) SaveCheckDB(db mssqlz.Database) error {
+func (st *State) Flush() error {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	return st.write()
+}
+
+func (st *State) Close() error {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	err := st.write()
+	st.closed = true
+	return err
+}
+
+func (st *State) SetLastCheckDBDate(db mssqlz.Database) error {
 	st.mu.Lock()
 	defer st.mu.Unlock()
 	k := db.Path()
 	st.CheckDB.M[k] = time.Now()
-	return st.write()
+	return nil
 }
 
-func (st *State) GetCheckDB(db mssqlz.Database) (time.Time, bool) {
+func (st *State) GetLastCheckDBDate(db mssqlz.Database) (time.Time, bool) {
 	st.mu.RLock()
 	defer st.mu.RUnlock()
 	k := db.Path()
@@ -67,6 +84,9 @@ func (st *State) GetCheckDB(db mssqlz.Database) (time.Time, bool) {
 }
 
 func (st *State) write() error {
+	if st.closed {
+		return ErrClosed
+	}
 	bb, err := json.MarshalIndent(st, "", "\t")
 	if err != nil {
 		return err
@@ -75,6 +95,9 @@ func (st *State) write() error {
 }
 
 func (st *State) read() error {
+	if st.closed {
+		return ErrClosed
+	}
 	// if the file doesn't exist, just go on
 	if _, err := os.Stat(st.fileName); errors.Is(err, os.ErrNotExist) {
 		return nil

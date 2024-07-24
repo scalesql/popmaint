@@ -51,6 +51,11 @@ func (ow *OutWriter) WriteError(err error) error {
 	return nil
 }
 
+func (ow *OutWriter) WriteErrorf(fmt string, args ...any) error {
+	log.Printf(fmt, args...)
+	return nil
+}
+
 func (ow *OutWriter) WriteRowSet() error {
 	panic("rowset!")
 }

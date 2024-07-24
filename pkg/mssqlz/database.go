@@ -45,6 +45,7 @@ func OnlineDatabases(ctx context.Context, fqdn string) ([]Database, error) {
 	}
 	defer pool.Close()
 	poolx := sqlx.NewDb(pool, "mssql")
+	defer poolx.Close()
 
 	err = poolx.SelectContext(ctx, &databases, dblistQuery)
 	for i := range databases {
