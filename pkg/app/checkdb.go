@@ -36,7 +36,6 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 	var err error
 	exitCode := 0
 	timeLimit := time.Duration(plan.CheckDB.TimeLimit)
-	start := time.Now()
 	engine.out.WriteStringf("%s: checkdb: time_limit: %s  noindex: %t  physical_only: %t  max_size_mb: %d  info_messages: %t", plan.Name, timeLimit, plan.CheckDB.NoIndex, plan.CheckDB.PhysicalOnly, plan.CheckDB.MaxSizeMB, plan.CheckDB.InfoMessages)
 
 	// loop through all servers and get databases
@@ -71,10 +70,17 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 	// 	return databases[i].DatabaseMB > databases[j].DatabaseMB
 	// })
 	// if !noexec, run each one
+	var totals struct {
+		count int
+		size  int
+	}
+	start := time.Now()
 	for _, db := range databases {
-		if time.Now().After(start.Add(timeLimit)) {
-			engine.out.WriteStringf("%s: time_limit (%s) exceeded", plan.Name, timeLimit)
-			break
+		if timeLimit.Seconds() > 0 {
+			if time.Now().After(start.Add(timeLimit)) {
+				engine.out.WriteStringf("%s: time_limit (%s) exceeded", plan.Name, timeLimit)
+				break
+			}
 		}
 		if plan.CheckDB.MaxSizeMB > 0 && db.DatabaseMB > plan.CheckDB.MaxSizeMB {
 			continue
@@ -96,7 +102,10 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 			}
 			// TODO Log the run time for this: FQDN, server, database, size, duration (rounded to second)
 		}
+		totals.count++
+		totals.size += db.DatabaseMB
 	}
+	engine.out.WriteStringf("totals: databases: %d  size_mb: %d  time=%s", totals.count, totals.size, time.Since(start).Round(1*time.Second))
 	return exitCode
 }
 
