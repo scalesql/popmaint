@@ -70,8 +70,8 @@ func (st *State) SetLastCheckDBDate(db mssqlz.Database) error {
 	st.mu.Lock()
 	defer st.mu.Unlock()
 	k := db.Path()
-	st.CheckDB.M[k] = time.Now()
-	return nil
+	st.CheckDB.M[k] = time.Now().Round(1 * time.Second)
+	return st.write() // these are big operations so we will write with each completion
 }
 
 func (st *State) GetLastCheckDBDate(db mssqlz.Database) (time.Time, bool) {

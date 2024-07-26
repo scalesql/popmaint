@@ -1,12 +1,13 @@
 package app
 
 import (
+	"cmp"
 	"context"
 	"popmaint/pkg/config.go"
 	"popmaint/pkg/maint"
 	"popmaint/pkg/mssqlz"
 	"popmaint/pkg/state"
-	"sort"
+	"slices"
 	"time"
 
 	"github.com/pkg/errors"
@@ -61,13 +62,14 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 			databases[i].LastDBCC = tm
 		}
 	}
-	sort.SliceStable(databases, func(i, j int) bool {
-		if databases[i].LastDBCC.Before(databases[j].LastDBCC) {
-			return true
-		}
+	sortDatabasesForDBCC(databases)
+	// sort.SliceStable(databases, func(i, j int) bool {
+	// 	if databases[i].LastDBCC.Before(databases[j].LastDBCC) {
+	// 		return true
+	// 	}
 
-		return databases[i].DatabaseMB > databases[j].DatabaseMB
-	})
+	// 	return databases[i].DatabaseMB > databases[j].DatabaseMB
+	// })
 	// if !noexec, run each one
 	for _, db := range databases {
 		if time.Now().After(start.Add(timeLimit)) {
@@ -98,65 +100,22 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 	return exitCode
 }
 
-// // TODO: CheckDB only checks one mssqlz.Database row and writes the results
-// func (ce *Engine) CheckDB(ctx context.Context, host string, plan config.Plan, noexec bool) error {
-// 	pool, err := mssqlh.Open(host, "master")
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer pool.Close()
+// sort by oldest defrag, then largest size
+func sortDatabasesForDBCC(databases []mssqlz.Database) {
+	slices.SortStableFunc(databases, func(a, b mssqlz.Database) int {
+		return coalesce(
+			cmp.Compare(a.LastDBCC.Unix(), b.LastDBCC.Unix()),     // ascending
+			cmp.Compare(int64(b.DatabaseMB), int64(a.DatabaseMB)), // descending
+		)
+	})
+}
 
-// 	databases, err := mssqlz.OnlineDatabases(ctx, host)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// Get the last CheckDB date from `state`.
-// 	// Secondary replicas always report the value from the primary.
-// 	// That means we will use our date.
-// 	for i, db := range databases {
-// 		tm, ok := ce.st.GetLastCheckDBDate(db)
-// 		if ok {
-// 			databases[i].LastDBCC = tm
-// 		}
-// 	}
-
-// 	// sort the oldest first, and then the largest
-// 	sort.SliceStable(databases, func(i, j int) bool {
-// 		if databases[i].LastDBCC.Before(databases[j].LastDBCC) {
-// 			return true
-// 		}
-
-// 		return databases[i].DatabaseMB > databases[j].DatabaseMB
-// 	})
-
-// 	for _, db := range databases {
-// 		if plan.CheckDB.MaxSizeMB > 0 && db.DatabaseMB > plan.CheckDB.MaxSizeMB {
-// 			continue
-// 		}
-// 		err = maint.CheckDB(ctx, ce.out, host, db, plan, noexec)
-// 		if err != nil {
-// 			// TODO keep going on error?
-// 			return err
-// 		}
-// 		if !noexec { // if we really did it, save it
-// 			err = ce.st.SetLastCheckDBDate(db)
-// 			if err != nil {
-// 				ce.out.WriteError(err)
-// 				return err
-// 			}
-// 		}
-// 	}
-// 	return nil
-// }
-
-// // sort by oldest defrag, then largest size
-// func sortDatabases(databases []mssqlz.Database) {
-// 	sort.SliceStable(databases, func(i, j int) bool {
-// 		if databases[i].LastDBCC.Before(databases[j].LastDBCC) {
-// 			return true
-// 		}
-
-// 		return databases[i].DatabaseMB > databases[j].DatabaseMB
-// 	})
-// }
+func coalesce[T comparable](vals ...T) T {
+	var zero T
+	for _, val := range vals {
+		if val != zero {
+			return val
+		}
+	}
+	return zero
+}

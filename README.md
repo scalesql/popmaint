@@ -15,6 +15,17 @@ TODO
     * ✅ Defrag host/database and write results - Passed an FQDN, database
     * ✅ Defrag one by one until done
 
+TODO #2
+-------
+* Keep a summary of total databases, total size, a total duration
+* MAXDOP
+    * MAXDOP as a command-line flag
+    * MAXDOP in the plan at each level
+    * `maxdop_cores` and `maxdop_pct` are both options (take lower on both)
+* Write to `.log` file output
+* Look for plans in root folder first, then look in `plans`
+    * Assume it has a `toml` extension -- but check for both
+
 Architecture
 ------------
 ```
