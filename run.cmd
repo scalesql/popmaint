@@ -1,2 +1,2 @@
 @ECHO OFF
-go build ./cmd/checkdb && checkdb -plan plan1
+go build ./cmd/popmaint && popmaint.exe -plan plan1

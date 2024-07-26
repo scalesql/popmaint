@@ -23,8 +23,12 @@ go.work.sum
 
 
 # popmaint
-/log
+/logs
 /state
 /plans
 *.json
+*.toml
+*.cmd
+
+
 

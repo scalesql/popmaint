@@ -3,7 +3,8 @@ package maint
 import (
 	"context"
 	"fmt"
-	"popmaint/pkg/config.go"
+	"log/slog"
+	"popmaint/pkg/config"
 	"popmaint/pkg/mssqlz"
 	"strings"
 
@@ -20,21 +21,29 @@ type CheckDBOptions struct {
 	// DataPurity            bool
 }
 
-func CheckDB(ctx context.Context, out mssqlz.Outputer, host string, db mssqlz.Database, plan config.Plan, noexec bool) error {
+func CheckDB(ctx context.Context, logger *slog.Logger, host string, db mssqlz.Database, plan config.Plan, noexec bool) error {
 	pool, err := mssqlh.Open(host, "master")
 	if err != nil {
 		return err
 	}
 	defer pool.Close()
-	stmt := makeStatement(db.DatabaseName, plan)
-	out.WriteStringf("%s: %s: %s", db.ServerName, db.DatabaseName, stmt)
+	maxdop, err := plan.MaxDop(db.Cores)
+	if err != nil {
+		return err
+	}
+	if plan.CheckDB.DataPurity && plan.CheckDB.PhysicalOnly {
+		return fmt.Errorf("can't set data_purity and physical_only")
+	}
+	stmt := makeCheckDBStatement(db.DatabaseName, plan, maxdop)
+	logger.Debug(stmt, slog.String("server", db.ServerName), slog.String("database", db.DatabaseName))
+
 	if !noexec {
-		err = mssqlz.ExecContext(ctx, pool, stmt, out)
+		err = mssqlz.ExecContext(ctx, pool, stmt, logger)
 	}
 	return err
 }
 
-func makeStatement(db string, plan config.Plan) string {
+func makeCheckDBStatement(db string, plan config.Plan, maxdop int) string {
 	stmt := fmt.Sprintf("DBCC CHECKDB(%s", mssqlh.QuoteName(db))
 	if plan.CheckDB.NoIndex {
 		stmt += ", NOINDEX"
@@ -47,6 +56,19 @@ func makeStatement(db string, plan config.Plan) string {
 	if plan.CheckDB.PhysicalOnly {
 		clauses = append(clauses, "PHYSICAL_ONLY")
 	}
+	if maxdop > 0 {
+		clauses = append(clauses, fmt.Sprintf("MAXDOP=%d", maxdop))
+	}
+	if plan.CheckDB.ExtendedLogicalChecks {
+		clauses = append(clauses, "EXTENDED_LOGICAL_CHECKS ")
+	}
+	if plan.CheckDB.DataPurity {
+		clauses = append(clauses, "DATA_PURITY")
+	}
+	if plan.CheckDB.EstimateOnly {
+		clauses = append(clauses, "ESTIMATEONLY")
+	}
+
 	if len(clauses) > 0 {
 		stmt += " WITH " + strings.Join(clauses, ", ")
 	}

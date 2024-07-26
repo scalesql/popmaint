@@ -3,28 +3,10 @@ PopMaint
 
 TODO
 ----
-* `pkg/mssqlz`
-    * Convert FQDN, host and database to pool
-    * ✅ `OnlineDatabases()` - Query server and get databases to defrag
-    * `Outputer` interface
-    * `pkg/mssql/execmon`
-    * `sqlexp`
-* `/pkg/app`
-    * 
-* `/pkg/maint`
-    * ✅ Defrag host/database and write results - Passed an FQDN, database
-    * ✅ Defrag one by one until done
-
-TODO #2
--------
-* Keep a summary of total databases, total size, a total duration
-* MAXDOP
-    * MAXDOP as a command-line flag
-    * MAXDOP in the plan at each level
-    * `maxdop_cores` and `maxdop_pct` are both options (take lower on both)
-* Write to `.log` file output
 * Look for plans in root folder first, then look in `plans`
     * Assume it has a `toml` extension -- but check for both
+* databases to include and exclude -- case-insentive
+* Skip any server less than 2014 and log a warning
 
 Architecture
 ------------

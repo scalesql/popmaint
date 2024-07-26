@@ -29,7 +29,7 @@ type State struct {
 	} `json:"checkdb"`
 }
 
-func NewState(plan string) (*State, error) {
+func New(plan string) (*State, error) {
 	st := State{
 		mu:       &sync.RWMutex{},
 		fileName: filepath.Join(".", "state", fmt.Sprintf("%s.state.json", strings.ToLower(plan))),
@@ -66,7 +66,7 @@ func (st *State) Close() error {
 	return err
 }
 
-func (st *State) SetLastCheckDBDate(db mssqlz.Database) error {
+func (st *State) SetLastCheckDB(db mssqlz.Database) error {
 	st.mu.Lock()
 	defer st.mu.Unlock()
 	k := db.Path()

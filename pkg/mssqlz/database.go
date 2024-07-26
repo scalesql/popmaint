@@ -25,7 +25,8 @@ type Database struct {
 	ProductVersion string `db:"product_version"`
 	MajorVersion   int    `db:"major_version"`
 	MaxDop         int
-	CPUCount       int `db:"cpu_count"`
+	Cores          int `db:"cpu_count"`
+	TempdbMB       int `db:"tempdb_mb"`
 }
 
 // Path returns a string in the format /domain/computer/instance/database.  This is used
@@ -56,17 +57,16 @@ func OnlineDatabases(ctx context.Context, fqdn string) ([]Database, error) {
 
 // TODO: Add updateability
 var dblistQuery = `
-
 ;WITH CTE AS (
 	SELECT	d.[name] AS [database_name],
-			(sum(size)/128) as [database_mb]
+			SUM(size)/128 as [database_mb]
 	FROM	sys.databases d
 	JOIN	sys.master_files mf ON mf.database_id = d.database_id
 	WHERE	mf.[type] = 0
 	AND		d.[state] = 0
 	GROUP BY d.[name]
-)
-SELECT cte.*
+) 
+SELECT CTE.*
 	,@@SERVERNAME AS server_name
 	,COALESCE(DEFAULT_DOMAIN(), '') as domain
 	,COALESCE(CAST(SERVERPROPERTY('ComputerNamePhysicalNetBIOS') AS NVARCHAR(128)), '') AS computer
@@ -76,6 +76,14 @@ SELECT cte.*
 	,COALESCE(CAST(SERVERPROPERTY('ProductMajorVersion') AS INT), '') AS major_version
 	,(SELECT [value] FROM sys.configurations WHERE configuration_id = 1539) AS [maxdop]
 	,(SELECT cpu_count FROM sys.dm_os_sys_info) AS cpu_count 
-FROM CTE
+	,tempdb_mb = (
+		SELECT	SUM(size)/128
+		FROM	sys.databases d
+		JOIN	sys.master_files mf ON mf.database_id = d.database_id
+		WHERE	mf.[type] = 0
+		AND		d.[state] = 0
+		AND		d.database_id = 2 
+	)
+FROM CTE;
 
 `

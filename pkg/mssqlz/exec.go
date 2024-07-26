@@ -4,12 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 
 	"github.com/golang-sql/sqlexp"
 	_ "github.com/microsoft/go-mssqldb"
 )
 
-func ExecContext(ctx context.Context, pool *sql.DB, stmt string, out Outputer) error {
+func ExecContext(ctx context.Context, pool *sql.DB, stmt string, logger *slog.Logger) error {
 	// TODO Handle multiple errors
 	var err error
 	retmsg := &sqlexp.ReturnMessage{}
@@ -25,9 +26,11 @@ func ExecContext(ctx context.Context, pool *sql.DB, stmt string, out Outputer) e
 		switch m := msg.(type) {
 		case sqlexp.MsgNotice:
 			//log.Println(m.Message.String())
-			out.WriteMessage(m)
+			//out.WriteMessage(m)
+			logger.Info(m.Message.String(), slog.Bool("sql_output", true))
 		case sqlexp.MsgError:
-			out.WriteError(m.Error)
+			//out.WriteError(m.Error)
+			logger.Error(m.Error.Error(), slog.Bool("sql_output", true))
 			//logrus.Debug("    MsgError")
 			//logrus.Errorf("Error: %s\n", m.Error)
 			// log.Println("Error:", m.Error)
@@ -43,9 +46,9 @@ func ExecContext(ctx context.Context, pool *sql.DB, stmt string, out Outputer) e
 			// }
 		case sqlexp.MsgRowsAffected:
 			if m.Count == 1 {
-				out.WriteString("(1 row affected)")
+				logger.Info("(1 row affected)", slog.Bool("sql_output", true))
 			} else {
-				out.WriteString(fmt.Sprintf("(%d rows affected)\n", m.Count))
+				logger.Info(fmt.Sprintf("(%d rows affected)\n", m.Count), slog.Bool("sql_output", true))
 			}
 		case sqlexp.MsgNextResultSet:
 			// TODO: reset the "qe" value
@@ -55,7 +58,7 @@ func ExecContext(ctx context.Context, pool *sql.DB, stmt string, out Outputer) e
 				// retcode = -100
 				// qe = s.handleError(&retcode, err)
 				// s.Format.AddError(err)
-				out.WriteString(fmt.Sprintf("MsgNextResultSet: rows.Err(): %s\n", err))
+				logger.Error(fmt.Sprintf("MsgNextResultSet: rows.Err(): %s\n", err), slog.Bool("sql_output", true))
 			}
 			if results {
 				first = true
@@ -68,14 +71,14 @@ func ExecContext(ctx context.Context, pool *sql.DB, stmt string, out Outputer) e
 			for rows.Next() {
 				if first {
 					headers, _ := rows.Columns()
-					out.WriteString(fmt.Sprintf("header: %v", headers))
+					logger.Info(fmt.Sprintf("header: %v", headers), slog.Bool("sql_output", true))
 					first = false
 				}
 				// if err := rows.Scan(&val); err != nil {
 				// 	return err
 				// }
 				// log.Printf("val=%d\n", val)
-				out.WriteString("a row")
+				logger.Info("a row", slog.Bool("sql_output", true))
 			}
 		}
 	}
