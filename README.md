@@ -7,6 +7,7 @@ TODO
     * Assume it has a `toml` extension -- but check for both
 * databases to include and exclude -- case-insentive
 * Skip any server less than 2014 and log a warning
+* `min_frequency` -- don't log unless this many days have passed
 
 Architecture
 ------------
@@ -23,19 +24,69 @@ Terminology
 -----------
 * Action - DBCC(CheckDB), Defrag, Backup, Stats, CleanUp
 
+Logging
+-------
+* text logs includes only the message
+
+### Fields
+* time
+* msg
+* level
+* global
+    * host
+        * name
+    * version
+    * collector="popmaint.exe"
+* popmaint
+    * plan
+    * action (app, checkdb, backup, defrag, history, etc.)
+    * time_limit (3m)
+    * domain
+    * server
+    * computer
+    * instance
+    * database
+    * databases (count of databases)
+    * schema
+    * object
+    * size_mb
+    * tempdb_mb
+    * duration (string)
+    * duration_sec (int)
+    * checkdb
+        * last_dbcc
+    * defrag
+        * fragmentation
+
+
+
+
+```go
+type Attributes struct {
+    Plan string
+    Action string // enum or constants
+    Domain string
+    Server string
+    Computer string
+    Instance string
+    Database string 
+}
+```
+
+
 File Structure
 --------------
 ```
 logs/
 ├─ json/
 └─ text/
-   └─ 240712_130214_plan1_log
+   └─ 240712_130214_plan1.log
+plans/
+└─ plan1.toml
 state/
 └─ plan1.state.json
 popmaint.exe
 popmaint.toml
-plan1.toml
-plan2.toml
 ```
 
 Finding Work
