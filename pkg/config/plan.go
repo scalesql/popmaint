@@ -26,6 +26,8 @@ type Plan struct {
 		ExtendedLogicalChecks bool     `toml:"extended_logical_checks"`
 		DataPurity            bool     `toml:"data_purity"`
 		EstimateOnly          bool     `toml:"estimate_only"`
+		Included              []string `toml:"included"`
+		Excluded              []string `toml:"excluded"`
 	} `toml:"checkdb"`
 }
 

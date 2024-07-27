@@ -10,6 +10,7 @@ import (
 	"popmaint/pkg/mssqlz"
 	"popmaint/pkg/state"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -45,7 +46,9 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 	var err error
 	exitCode := 0
 	timeLimit := time.Duration(plan.CheckDB.TimeLimit)
-	child.Info("checkdb",
+	child.Info(
+		fmt.Sprintf("checkdb: time: %s  max_size_mb: %d  no_index: %t  physical_only: %t",
+			timeLimit, plan.CheckDB.MaxSizeMB, plan.CheckDB.NoIndex, plan.CheckDB.PhysicalOnly),
 		"time_limit", timeLimit.String(),
 		slog.Group(ActionCheckdb,
 			"no_index", plan.CheckDB.NoIndex,
@@ -74,11 +77,15 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 			continue
 		}
 		databases = append(databases, dbs...)
-		//engine.out.WriteStringf("fqdn: %s  server: %s  databases: %d", fqdn, srv.ServerName, len(dbs))
-		child.Info(fqdn,
+		size := 0
+		for _, db := range dbs {
+			size += db.DatabaseMB
+		}
+		child.Info(fmt.Sprintf("%s:  server: %s  databases: %d  size_mb: %d", fqdn, srv.ServerName, len(dbs), size),
 			slog.String("server", srv.ServerName),
 			slog.Int("databases", len(dbs)))
 	}
+
 	// sort the databases, filter, and get state
 	for i, db := range databases {
 		tm, ok := engine.st.GetLastCheckDBDate(db)
@@ -86,25 +93,55 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 			databases[i].LastDBCC = tm
 		}
 	}
-	sortDatabasesForDBCC(databases)
 
+	// filter databases
 	var totals struct {
 		count int
 		size  int
 	}
-	start := time.Now()
+	filteredDatabases := make([]mssqlz.Database, 0, len(databases))
 	for _, db := range databases {
+		if plan.CheckDB.MaxSizeMB > 0 && db.DatabaseMB > plan.CheckDB.MaxSizeMB {
+			continue
+		}
+
+		// if this database is in []excluded, just keep going
+		if len(plan.CheckDB.Excluded) > 0 {
+			if contains(plan.CheckDB.Excluded, db.DatabaseName) {
+				continue
+			}
+		}
+		// if this database isn't in []included, just keep going
+		if len(plan.CheckDB.Included) > 0 {
+			if !contains(plan.CheckDB.Included, db.DatabaseName) {
+				continue
+			}
+		}
+
+		filteredDatabases = append(filteredDatabases, db)
+		totals.count++
+		totals.size += db.DatabaseMB
+	}
+	child.Info(fmt.Sprintf("checkdb (filtered): databases: %d  size_mb: %d", totals.count, totals.size),
+		slog.Int("databases", totals.count),
+		slog.Int("size_mb", totals.size),
+	)
+	// sort databases
+	sortDatabasesForDBCC(filteredDatabases)
+
+	totals.count = 0
+	totals.size = 0
+
+	start := time.Now()
+	for _, db := range filteredDatabases {
 		if timeLimit.Seconds() > 0 {
 			if time.Now().After(start.Add(timeLimit)) {
-				//engine.out.WriteStringf("%s: time_limit (%s) exceeded", plan.Name, timeLimit)
 				child.Warn(fmt.Sprintf("%s: time_limit (%s) exceeded", plan.Name, timeLimit))
 				break
 			}
 		}
-		if plan.CheckDB.MaxSizeMB > 0 && db.DatabaseMB > plan.CheckDB.MaxSizeMB {
-			continue
-		}
-		child.Info(fmt.Sprintf("checkdb: %s.%s", db.ServerName, db.DatabaseName),
+
+		child.Info(fmt.Sprintf("checkdb: %s.%s (%d mb)", db.ServerName, db.DatabaseName, db.DatabaseMB),
 			slog.String("server", db.ServerName),
 			slog.String("database", db.DatabaseName),
 			slog.Int("size_mb", db.DatabaseMB),
@@ -112,7 +149,6 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 				slog.String("last_dbcc", db.LastDBCC.Format(time.RFC3339)),
 			),
 		)
-		//engine.out.WriteStringf("%s: database: %s  size_mb: %d  last_dbcc: %s", db.ServerName, db.DatabaseName, db.DatabaseMB, db.LastDBCC.Format("2006-01-02 15:04:05"))
 
 		err = maint.CheckDB(ctx, child, db.FQDN, db, plan, noexec)
 		if err != nil {
@@ -159,4 +195,13 @@ func coalesce[T comparable](vals ...T) T {
 		}
 	}
 	return zero
+}
+
+func contains(list []string, value string) bool {
+	for _, str := range list {
+		if strings.EqualFold(str, value) {
+			return true
+		}
+	}
+	return false
 }

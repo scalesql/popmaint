@@ -35,7 +35,15 @@ func Run(dev bool, planName string, noexec bool) int {
 		logger.Error(fmt.Errorf("config.readconfig: %w", err).Error())
 		return 1
 	}
-	logger.Info("running app", slog.Int("log_retention_days", appconfig.LogRetentionDays))
+	msg := "popmaint.exe"
+	if dev {
+		msg += fmt.Sprintf("  dev: %t", dev)
+	}
+	if noexec {
+		msg += fmt.Sprintf("  noexec: %t", noexec)
+	}
+	logger.Info(msg, slog.Int("log_retention_days", appconfig.LogRetentionDays))
+
 	err = cleanUpLogs(appconfig.LogRetentionDays, "text", "*.log")
 	if err != nil {
 		logger.Error(fmt.Errorf("cleanuplogs: %w", err).Error())
@@ -52,7 +60,11 @@ func Run(dev bool, planName string, noexec bool) int {
 		logger.Error(err.Error())
 		return 1
 	}
-	logger.Info(fmt.Sprintf("running plan %s", planName), "servers", len(plan.Servers), "noexec", noexec, "maxdop_cores", plan.MaxDopCores, "maxdop_percent", plan.MaxDopPercent)
+	logger.Info(fmt.Sprintf("plan: %s  servers: %d  noexec: %t", planName, len(plan.Servers), noexec),
+		"servers", len(plan.Servers),
+		"noexec", noexec,
+		"maxdop_cores", plan.MaxDopCores,
+		"maxdop_percent", plan.MaxDopPercent)
 	st, err := state.New(planName)
 	if err != nil {
 		logger.Error(fmt.Errorf("state.new: %w", err).Error())

@@ -11,16 +11,6 @@ import (
 	"github.com/billgraziano/mssqlh"
 )
 
-type CheckDBOptions struct {
-	NoExec       bool
-	NoIndex      bool
-	InfoMessage  bool
-	PhysicalOnly bool
-	MaxSizeMB    int
-	// ExtendedLogicalChecks bool
-	// DataPurity            bool
-}
-
 func CheckDB(ctx context.Context, logger *slog.Logger, host string, db mssqlz.Database, plan config.Plan, noexec bool) error {
 	pool, err := mssqlh.Open(host, "master")
 	if err != nil {
