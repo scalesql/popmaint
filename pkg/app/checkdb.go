@@ -141,7 +141,8 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 			}
 		}
 
-		child.Info(fmt.Sprintf("checkdb: %s.%s (%d mb)", db.ServerName, db.DatabaseName, db.DatabaseMB),
+		child.Info(fmt.Sprintf("checkdb: %s.%s (%d mb)  last_dbcc: %s",
+			db.ServerName, db.DatabaseName, db.DatabaseMB, db.LastDBCC),
 			slog.String("server", db.ServerName),
 			slog.String("database", db.DatabaseName),
 			slog.Int("size_mb", db.DatabaseMB),
