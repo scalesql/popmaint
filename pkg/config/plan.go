@@ -18,17 +18,17 @@ type Plan struct {
 	MaxDopCores   int      `toml:"maxdop_cores"`
 	MaxDopPercent int      `toml:"maxdop_percent"`
 	CheckDB       struct {
-		TimeLimit             Duration `toml:"time_limit"`
-		NoIndex               bool     `toml:"no_index"`
-		MaxSizeMB             int      `toml:"max_size_mb"`
-		PhysicalOnly          bool     `toml:"physical_only"`
-		InfoMessages          bool     `toml:"info_messages"`
-		ExtendedLogicalChecks bool     `toml:"extended_logical_checks"`
-		DataPurity            bool     `toml:"data_purity"`
-		EstimateOnly          bool     `toml:"estimate_only"`
-		Included              []string `toml:"included"`
-		Excluded              []string `toml:"excluded"`
-	} `toml:"checkdb"`
+		TimeLimit             Duration `toml:"time_limit" json:"-"`
+		NoIndex               bool     `toml:"no_index" json:"no_index"`
+		MaxSizeMB             int      `toml:"max_size_mb" json:"-"`
+		PhysicalOnly          bool     `toml:"physical_only" json:"physical_only"`
+		InfoMessages          bool     `toml:"info_messages" json:"info_messages"`
+		ExtendedLogicalChecks bool     `toml:"extended_logical_checks" json:"extended_logical_checks"`
+		DataPurity            bool     `toml:"data_purity" json:"data_purity"`
+		EstimateOnly          bool     `toml:"estimate_only" json:"estimate_only"`
+		Included              []string `toml:"included" json:"-"`
+		Excluded              []string `toml:"excluded" json:"-"`
+	} `toml:"checkdb" json:"checkdb"`
 }
 
 func ReadPlan(name string) (Plan, error) {

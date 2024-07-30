@@ -11,7 +11,13 @@ import (
 	"github.com/billgraziano/mssqlh"
 )
 
-func CheckDB(ctx context.Context, logger *slog.Logger, host string, db mssqlz.Database, plan config.Plan, noexec bool) error {
+type CheckDBEstimate struct {
+	Plan     config.Plan
+	NeededKB int
+	Messages []string
+}
+
+func CheckDB(ctx context.Context, logger mssqlz.ExecLogger, host string, db mssqlz.Database, plan config.Plan, noexec bool) error {
 	pool, err := mssqlh.Open(host, "master")
 	if err != nil {
 		return err

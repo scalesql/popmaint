@@ -3,76 +3,20 @@ PopMaint
 
 TODO
 ----
+* build stuff for version, etc. w/PowerShell builder. Like IsItSQL maybe?
+* Need to write better JSON field stuff
+* logx?
+* Just log to stdout until the logger is setup
 * Look for plans in root folder first, then look in `plans`
     * Assume it has a `toml` extension -- but check for both
-* databases to include and exclude -- case-insentive
 * Skip any server less than 2014 and log a warning
-* `min_frequency` -- don't log unless this many days have passed
+* `min_frequency` -- don't CheckDB unless this many days have passed
+* Maybe I should log to a struct?  That has all the fields I want.  And maybe some subfields?  Like CheckDB.
 
-Architecture
-------------
-```
-/cmd/defrag/main.go
-    app.DefragHost(fqdn) -- keeps state and restart
-        mssqz.OnlineDatabases(fqdn)
-        maint.Defrag(fqdn, database)
-```
-* Build `App` struct that the `Config` structs hang off
-* Also that state stuff hangs off
 
 Terminology
 -----------
 * Action - DBCC(CheckDB), Defrag, Backup, Stats, CleanUp
-
-Logging
--------
-* text logs includes only the message
-
-### Fields
-* time
-* msg
-* level
-* global
-    * host
-        * name
-    * version
-    * collector="popmaint.exe"
-* popmaint
-    * plan
-    * action (app, checkdb, backup, defrag, history, etc.)
-    * time_limit (3m)
-    * domain
-    * server
-    * computer
-    * instance
-    * database
-    * databases (count of databases)
-    * schema
-    * object
-    * size_mb
-    * tempdb_mb
-    * duration (string)
-    * duration_sec (int)
-    * checkdb
-        * last_dbcc
-    * defrag
-        * fragmentation
-
-
-
-
-```go
-type Attributes struct {
-    Plan string
-    Action string // enum or constants
-    Domain string
-    Server string
-    Computer string
-    Instance string
-    Database string 
-}
-```
-
 
 File Structure
 --------------
@@ -89,45 +33,15 @@ popmaint.exe
 popmaint.toml
 ```
 
-Finding Work
-------------
-* Get all the databases
-* Go get the the last DBCC from state
-* Sort by oldest DBCC, largest database
-* Maybe read-only gets done less frequently?  Only show up every X days?
-* Have a minimum number of days before we retest
-
-Before Test
------------
-* Skip any server before SQL Server 2014
-* Command-line options
-    * ✅ FQDN
-    * ✅ Settings: noindex, physical only, max database size
-* Log to file and console
-    * Purge old log files
-    * `popmaint_yymmdd_hhmmss_plan.(log|json)`
-
 Fun Stuff
 ---------
-* Parse the duration and limit it
 * Write sql.Rows to a log file
-* Write the log file and rotate it
 
 Next Test #1
 ------------
 * Monitor for blocking or blocked by and abort (EXECMON)
 * Use `/pkg/execmon` to defrag
 
-Next Test #2
-------------
-* More DBCC options
-* Get all the databases from all the servers.  Sort oldestest, then largest, and go as afar as we can
-* Add a time limit
-* MAXDOP as pct/value
-* database (optional)
-* EXTENDED_LOGICAL_CHECKS, data purity
-
-TOML Plan File - core-us-kc, core-br, uskc-epay, uskc-eft,
 ---------
 ```toml
 servers = ["ab", "c"]
@@ -155,37 +69,3 @@ retain_days = 30
 [logging.json]
 [logging.console]
 
-
-Appify
-------
-* Server list in file
-* DBCC settings in file
-* Save state based on this combo
-* Write log file based on this combo
-* Write log files to NDJSON format
-
-Messages
---------
-* Return 
-    * message: text, JSON, stdout
-    * error: text, JSON, stdout
-    * RowSet: text, stdout
-* Writer vs Logger, one vs many
-* JSON is only for ELK
-* Options
-    * Output that has message, error or RowSet
-    * Send the results on a channel and something else handles them
-    * Pass in a Writer
-    * Pass in a "thing"
-* "Thing" - Write message, write error, write RowSet
-
-Maybe Future?
--------------
-* Split up databases based on hash of the domain, server, instance, database
-* Don't run on primary? or synchronous node?  Or a flag for that?
-* Panic Handler
-
-Issues
-------
-* If an error occurs, log it, and keep going.  But fail the EXE after we are done.
-    * Rebooting server, permission, etc.

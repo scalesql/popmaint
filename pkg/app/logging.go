@@ -46,7 +46,9 @@ func getLogger(name string, dev bool) (*slog.Logger, []*os.File, error) {
 		Level: slog.LevelDebug,
 	}))
 	jlog2 := jlog1.With(
-		slog.Group("global", slog.Group("host", slog.String("name", hostname))),
+		slog.Group("global",
+			slog.Group("host",
+				slog.String("name", hostname))),
 	)
 	jlog3 := jlog2.WithGroup("popmaint").With(slog.String("plan", name))
 

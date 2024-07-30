@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"popmaint/pkg/checkdbwriter"
 	"popmaint/pkg/config"
 	"popmaint/pkg/maint"
 	"popmaint/pkg/mssqlz"
@@ -151,6 +152,21 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 			),
 		)
 
+		// get the estimated tempdb space
+		estimatePlan := plan
+		estimatePlan.CheckDB.EstimateOnly = true
+		aw := checkdbwriter.New()
+		err = maint.CheckDB(ctx, aw, db.FQDN, db, plan, false)
+		if err != nil {
+			child.Error(fmt.Errorf("checkdb estimate: %w", err).Error())
+		} else {
+			estimatedKB := aw.EstimateKB()
+			if estimatedKB != 0 {
+				db.EstimatedTempdb = estimatedKB / 1024
+			}
+		}
+		//fmt.Printf("estimate: rows: %d  (%d KB)\n", len(aw.Messages()), aw.EstimateKB())
+		t0 := time.Now()
 		err = maint.CheckDB(ctx, child, db.FQDN, db, plan, noexec)
 		if err != nil {
 			// Log the error and keep going
@@ -165,6 +181,14 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 				exitCode = 1
 			}
 			// TODO Log the run time for this: FQDN, server, database, size, duration (rounded to second)
+			if !plan.CheckDB.EstimateOnly {
+				child.Info(fmt.Sprintf("DBCC CHECKDB: %s.%s size_mb=%d  duration=%s", db.ServerName, db.DatabaseName, db.DatabaseMB, time.Since(t0).Round(1*time.Second)),
+					slog.Int("size_mb", db.DatabaseMB),
+					slog.String("duration", time.Since(t0).Round(1*time.Second).String()),
+					slog.Int("duration_sec", int(time.Since(t0).Round(1*time.Second).Seconds())),
+					slog.Any("checkdb", plan.CheckDB),
+				)
+			}
 		}
 		totals.count++
 		totals.size += db.DatabaseMB

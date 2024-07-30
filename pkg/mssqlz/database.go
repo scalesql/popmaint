@@ -13,20 +13,21 @@ import (
 // Database holds information about a SQL Server database.  It is
 // primarily used for CheckDB.
 type Database struct {
-	FQDN           string
-	DatabaseName   string    `db:"database_name"`
-	DatabaseMB     int       `db:"database_mb"`
-	LastDBCC       time.Time `db:"last_dbcc"`
-	ServerName     string    `db:"server_name"`
-	Domain         string
-	Computer       string
-	Instance       string
-	EngineEdition  int    `db:"engine_edition"`
-	ProductVersion string `db:"product_version"`
-	MajorVersion   int    `db:"major_version"`
-	MaxDop         int
-	Cores          int `db:"cpu_count"`
-	TempdbMB       int `db:"tempdb_mb"`
+	FQDN            string
+	DatabaseName    string    `db:"database_name"`
+	DatabaseMB      int       `db:"database_mb"`
+	LastDBCC        time.Time `db:"last_dbcc"`
+	ServerName      string    `db:"server_name"`
+	Domain          string
+	Computer        string
+	Instance        string
+	EngineEdition   int    `db:"engine_edition"`
+	ProductVersion  string `db:"product_version"`
+	MajorVersion    int    `db:"major_version"`
+	MaxDop          int
+	Cores           int `db:"cpu_count"`
+	TempdbMB        int `db:"tempdb_mb"`
+	EstimatedTempdb int
 }
 
 // Path returns a string in the format /domain/computer/instance/database.  This is used

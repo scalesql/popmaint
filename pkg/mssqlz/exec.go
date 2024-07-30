@@ -10,7 +10,13 @@ import (
 	_ "github.com/microsoft/go-mssqldb"
 )
 
-func ExecContext(ctx context.Context, pool *sql.DB, stmt string, logger *slog.Logger) error {
+type ExecLogger interface {
+	Info(msg string, args ...any)
+	Error(msg string, args ...any)
+	Debug(msg string, args ...any)
+}
+
+func ExecContext(ctx context.Context, pool *sql.DB, stmt string, logger ExecLogger) error {
 	// TODO Handle multiple errors
 	var err error
 	retmsg := &sqlexp.ReturnMessage{}
