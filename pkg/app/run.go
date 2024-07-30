@@ -7,13 +7,22 @@ import (
 	"log"
 	"log/slog"
 	"os"
-	"popmaint/pkg/config"
-	"popmaint/pkg/state"
+	"path/filepath"
+
+	"github.com/scalesql/popmaint/pkg/build"
+	"github.com/scalesql/popmaint/pkg/config"
+	"github.com/scalesql/popmaint/pkg/state"
 )
 
 var ErrRunError = errors.New("error running plan")
 
 func Run(dev bool, planName string, noexec bool) int {
+	exename, err := os.Executable()
+	if err != nil {
+		log.Print(err)
+		return 1
+	}
+	exenameBase := filepath.Base(exename)
 	ctx := context.Background()
 	logger, logFiles, err := getLogger(planName, dev)
 	if err != nil {
@@ -35,7 +44,9 @@ func Run(dev bool, planName string, noexec bool) int {
 		logger.Error(fmt.Errorf("config.readconfig: %w", err).Error())
 		return 1
 	}
-	msg := "popmaint.exe"
+	logger.Info(fmt.Sprintf("%s: %s (%s) built %s", exenameBase, build.Version(), build.Commit(), build.Built()))
+	// TODO add build information to global, and full exepath
+	msg := exenameBase
 	if dev {
 		msg += fmt.Sprintf("  dev: %t", dev)
 	}
@@ -49,7 +60,7 @@ func Run(dev bool, planName string, noexec bool) int {
 		logger.Error(fmt.Errorf("cleanuplogs: %w", err).Error())
 		return 1
 	}
-	err = cleanUpLogs(appconfig.LogRetentionDays, "json", "*.nsjson")
+	err = cleanUpLogs(appconfig.LogRetentionDays, "json", "*.ndjson")
 	if err != nil {
 		logger.Error(fmt.Errorf("cleanuplogs: %w", err).Error())
 		return 1

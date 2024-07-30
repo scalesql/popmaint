@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"popmaint/pkg/mssqlz"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/scalesql/popmaint/pkg/mssqlz"
 )
 
 var ErrClosed = errors.New("state is closed")

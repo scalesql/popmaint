@@ -3,9 +3,11 @@ PopMaint
 
 TODO
 ----
-* build stuff for version, etc. w/PowerShell builder. Like IsItSQL maybe?
+* What does `dev` flag do?
 * Need to write better JSON field stuff
-* logx?
+* Only log successful completions stuff through slog
+    * All the "I'm working on stuff" goes through stdout to `slog.Info`
+* logx? For nested groups?
 * Just log to stdout until the logger is setup
 * Look for plans in root folder first, then look in `plans`
     * Assume it has a `toml` extension -- but check for both

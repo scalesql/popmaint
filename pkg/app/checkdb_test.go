@@ -1,9 +1,10 @@
 package app
 
 import (
-	"popmaint/pkg/mssqlz"
 	"testing"
 	"time"
+
+	"github.com/scalesql/popmaint/pkg/mssqlz"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"popmaint/pkg/config"
-	"popmaint/pkg/mssqlz"
 	"strings"
+
+	"github.com/scalesql/popmaint/pkg/config"
+	"github.com/scalesql/popmaint/pkg/mssqlz"
 
 	"github.com/billgraziano/mssqlh"
 )

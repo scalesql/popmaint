@@ -1,8 +1,9 @@
-module popmaint
+module github.com/scalesql/popmaint
 
 go 1.21.5
 
 require (
+	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/billgraziano/mssqlh v1.0.2
 	github.com/golang-sql/sqlexp v0.1.0
 	github.com/jmoiron/sqlx v1.4.0

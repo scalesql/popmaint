@@ -26,9 +26,13 @@ go.work.sum
 /logs
 /state
 /plans
+/deploy
+/notes
 *.json
 *.toml
 *.cmd
+*.ps1
+
 
 
 

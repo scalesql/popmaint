@@ -5,14 +5,15 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"popmaint/pkg/checkdbwriter"
-	"popmaint/pkg/config"
-	"popmaint/pkg/maint"
-	"popmaint/pkg/mssqlz"
-	"popmaint/pkg/state"
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/scalesql/popmaint/pkg/checkdbwriter"
+	"github.com/scalesql/popmaint/pkg/config"
+	"github.com/scalesql/popmaint/pkg/maint"
+	"github.com/scalesql/popmaint/pkg/mssqlz"
+	"github.com/scalesql/popmaint/pkg/state"
 
 	"github.com/pkg/errors"
 )
