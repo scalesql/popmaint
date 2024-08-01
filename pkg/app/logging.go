@@ -7,19 +7,17 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/lmittmann/tint"
-	"github.com/mattn/go-colorable"
 	slogmulti "github.com/samber/slog-multi"
 )
 
 func getLogger(name string, dev bool) (*slog.Logger, []*os.File, error) {
 	// noattrs removes all attributes except the big three
-	noattrs := func(groups []string, a slog.Attr) slog.Attr {
-		if a.Key == slog.TimeKey || a.Key == slog.LevelKey || a.Key == slog.MessageKey {
-			return a
-		}
-		return slog.Attr{}
-	}
+	// noattrs := func(groups []string, a slog.Attr) slog.Attr {
+	// 	if a.Key == slog.TimeKey || a.Key == slog.LevelKey || a.Key == slog.MessageKey {
+	// 		return a
+	// 	}
+	// 	return slog.Attr{}
+	// }
 
 	//global := slog.Group("global", slog.Group("host", slog.String("name", "xxx")))
 	hostname, err := os.Hostname()
@@ -52,22 +50,22 @@ func getLogger(name string, dev bool) (*slog.Logger, []*os.File, error) {
 	)
 	jlog3 := jlog2.WithGroup("popmaint").With(slog.String("plan", name))
 
-	var consoleLogger slog.Handler
-	if dev {
-		consoleLogger = tint.NewHandler(colorable.NewColorable(os.Stdout), &tint.Options{
-			Level:       slog.LevelDebug,
-			TimeFormat:  time.TimeOnly,
-			ReplaceAttr: noattrs,
-		})
-	} else {
-		consoleLogger = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-			Level:       slog.LevelDebug,
-			ReplaceAttr: noattrs,
-		})
-	}
+	//var consoleLogger slog.Handler
+	// if dev {
+	// 	consoleLogger = tint.NewHandler(colorable.NewColorable(os.Stdout), &tint.Options{
+	// 		Level:       slog.LevelDebug,
+	// 		TimeFormat:  time.TimeOnly,
+	// 		ReplaceAttr: noattrs,
+	// 	})
+	// } else {
+	// 	consoleLogger = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	// 		Level:       slog.LevelDebug,
+	// 		ReplaceAttr: noattrs,
+	// 	})
+	// }
 	logger := slog.New(
 		slogmulti.Fanout(
-			consoleLogger,
+			slog.Default().Handler(),
 			slog.NewTextHandler(txtFile, &slog.HandlerOptions{
 				Level: slog.LevelDebug,
 			}),

@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/scalesql/popmaint/pkg/build"
 	"github.com/scalesql/popmaint/pkg/config"
@@ -19,14 +19,14 @@ var ErrRunError = errors.New("error running plan")
 func Run(dev bool, planName string, noexec bool) int {
 	exename, err := os.Executable()
 	if err != nil {
-		log.Print(err)
+		slog.Error(err.Error())
 		return 1
 	}
 	exenameBase := filepath.Base(exename)
 	ctx := context.Background()
 	logger, logFiles, err := getLogger(planName, dev)
 	if err != nil {
-		log.Printf("getlogger: %s\n", err.Error())
+		slog.Error(err.Error())
 		return 1
 	}
 
@@ -34,9 +34,12 @@ func Run(dev bool, planName string, noexec bool) int {
 	for i := range logFiles {
 		defer func(f *os.File) {
 			if err := f.Close(); err != nil {
-				log.Printf("file.close: %s\n", err)
+				slog.Error(err.Error())
 			}
 		}(logFiles[i])
+	}
+	if dev {
+		fmt.Println(strings.Repeat("-", 80))
 	}
 
 	appconfig, err := config.ReadConfig()

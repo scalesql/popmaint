@@ -18,7 +18,8 @@ func main() {
 
 	exename, err := os.Executable()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err.Error())
+		os.Exit(1)
 	}
 	flag.StringVar(&plan, "plan", "", "plan to run")
 	flag.BoolVar(&noexec, "noexec", false, "do not execute the DBCC (display only)")
@@ -32,7 +33,7 @@ func main() {
 	}
 	if plan == "" {
 		log.Fatal("fatal: --plan is required")
-		return
+		os.Exit(1)
 	}
 	exitCode := app.Run(dev, plan, noexec)
 	if exitCode > 125 {
