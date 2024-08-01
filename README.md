@@ -3,9 +3,10 @@ PopMaint
 
 TODO
 ----
+* Make the console logger just be default slog.  Nothing special. It needs to be narrower.
 * What does `dev` flag do?
 * Need to write better JSON field stuff
-* Only log successful completions stuff through slog
+* Only log successful completions stuff through the passed in logger
     * All the "I'm working on stuff" goes through stdout to `slog.Info`
 * logx? For nested groups?
 * Just log to stdout until the logger is setup

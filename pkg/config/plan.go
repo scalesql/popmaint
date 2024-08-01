@@ -81,7 +81,8 @@ func (p *Plan) RemoveDupes() []string {
 	return dupes
 }
 
-func (p Plan) MaxDop(cores int) (int, error) {
+// MaxDop determines the MAXDOP for a particular server
+func (p Plan) MaxDop(cores, maxdop int) (int, error) {
 	if p.MaxDopCores < 0 {
 		return 0, fmt.Errorf("invalid maxdop_cores: %d", p.MaxDopCores)
 	}
@@ -91,17 +92,27 @@ func (p Plan) MaxDop(cores int) (int, error) {
 	if p.MaxDopCores == 0 && p.MaxDopPercent == 0 {
 		return 0, nil
 	}
-	pctcores := 0
+	corespct := cores // start with cores and reduce if needed
 	if p.MaxDopPercent > 0 {
 		val := float64(cores) * (float64(p.MaxDopPercent) / 100.0)
-		pctcores = int(val)
+		corespct = int(val)
+		if corespct == 0 {
+			corespct = 1
+		}
 	}
-	value := lowest(p.MaxDopCores, pctcores)
-	if value > cores {
+	coresnum := cores // start with cores and reduce if needed
+	if p.MaxDopCores > 0 {
+		if coresnum > p.MaxDopCores {
+			coresnum = p.MaxDopCores
+		}
+	}
+	println(coresnum, corespct)
+	value := lowest(coresnum, corespct)
+	println(value, cores, maxdop)
+	if value >= cores || value >= maxdop {
 		return 0, nil
 	}
-	// MAYBE: if > 3 and odd, subtract 1
-	// based on `maxdop_even=true`
+	// MAYBE: if >= 3 and odd, subtract 1; based on `maxdop_even=true`
 	return value, nil
 }
 
