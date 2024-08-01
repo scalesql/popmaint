@@ -101,6 +101,7 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 		count int
 		size  int
 	}
+
 	filteredDatabases := make([]mssqlz.Database, 0, len(databases))
 	for _, db := range databases {
 		if plan.CheckDB.MaxSizeMB > 0 && db.DatabaseMB > plan.CheckDB.MaxSizeMB {
@@ -116,6 +117,14 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 		// if this database isn't in []included, just keep going
 		if len(plan.CheckDB.Included) > 0 {
 			if !contains(plan.CheckDB.Included, db.DatabaseName) {
+				continue
+			}
+		}
+
+		// check the minimum interval
+		if plan.CheckDB.MinIntervalDays > 0 {
+			notBefore := db.LastDBCC.Add(time.Duration(plan.CheckDB.MinIntervalDays)*24 - 1*time.Hour)
+			if notBefore.Before(time.Now()) {
 				continue
 			}
 		}

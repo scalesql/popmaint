@@ -28,6 +28,7 @@ type Plan struct {
 		EstimateOnly          bool     `toml:"estimate_only" json:"estimate_only"`
 		Included              []string `toml:"included" json:"-"`
 		Excluded              []string `toml:"excluded" json:"-"`
+		MinIntervalDays       int      `toml:"min_interval_days" json:"-"`
 	} `toml:"checkdb" json:"checkdb"`
 }
 
