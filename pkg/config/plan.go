@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pelletier/go-toml/v2"
@@ -58,6 +59,26 @@ func ReadPlan(name string) (Plan, error) {
 		return Plan{}, fmt.Errorf("can't set data_purity and physical_only")
 	}
 	return plan, nil
+}
+
+// RemoveDupes removes duplicate servers from the Plan using a case-insensitive
+// comparison.  It returns any duplicates for logging.
+func (p *Plan) RemoveDupes() []string {
+	servers := make(map[string]bool)
+	dupes := make([]string, 0)
+	uniques := make([]string, 0)
+	for _, srv := range p.Servers {
+		key := strings.ToLower(srv)
+		_, ok := servers[key]
+		if ok {
+			dupes = append(dupes, srv)
+		} else {
+			uniques = append(uniques, srv)
+			servers[key] = true
+		}
+	}
+	p.Servers = uniques
+	return dupes
 }
 
 func (p Plan) MaxDop(cores int) (int, error) {

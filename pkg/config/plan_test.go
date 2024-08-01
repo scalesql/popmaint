@@ -6,25 +6,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMaxDop(t *testing.T) {
+func TestPlanRemoveDupes(t *testing.T) {
 	assert := assert.New(t)
-	type test struct {
-		cores    int
-		maxCores int
-		maxPct   int
-		want     int
+	plan := Plan{
+		Servers: []string{
+			"a",
+			"a",
+			"b",
+			"x",
+			"b",
+			"b",
+			"A",
+		},
 	}
-	tests := []test{
-		{8, 4, 0, 4},
-		{8, 0, 50, 4},
-		{8, 6, 50, 4},
-		{10, 0, 79, 7},
-		{10, 2, 79, 2},
-		{10, 24, 0, 0},
-	}
-	for _, tc := range tests {
-		plan := Plan{MaxDopCores: tc.maxCores, MaxDopPercent: tc.maxPct}
-		got, _ := plan.MaxDop(tc.cores)
-		assert.Equal(tc.want, got)
-	}
+	dupes := plan.RemoveDupes()
+	assert.Equal([]string{"a", "b", "x"}, plan.Servers)
+	assert.Equal([]string{"a", "b", "b", "A"}, dupes)
 }

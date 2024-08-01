@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/scalesql/popmaint/pkg/build"
 	"github.com/scalesql/popmaint/pkg/config"
@@ -38,9 +37,9 @@ func Run(dev bool, planName string, noexec bool) int {
 			}
 		}(logFiles[i])
 	}
-	if dev {
-		fmt.Println(strings.Repeat("-", 80))
-	}
+	// if dev {
+	// 	fmt.Println(strings.Repeat("-", 120), "<- 120 chars")
+	// }
 
 	appconfig, err := config.ReadConfig()
 	if err != nil {
@@ -73,6 +72,10 @@ func Run(dev bool, planName string, noexec bool) int {
 	if err != nil {
 		logger.Error(err.Error())
 		return 1
+	}
+	dupes := plan.RemoveDupes()
+	for _, str := range dupes {
+		logger.Warn(fmt.Sprintf("%s: duplicate server: %s", planName, str))
 	}
 	logger.Info(fmt.Sprintf("plan: %s  servers: %d  noexec: %t", planName, len(plan.Servers), noexec),
 		"servers", len(plan.Servers),

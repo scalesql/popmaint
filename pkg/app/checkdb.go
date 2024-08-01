@@ -67,10 +67,16 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 
 	// loop through all servers and get databases
 	databases := make([]mssqlz.Database, 0)
+	dupecheck := mssqlz.NewDupeCheck()
 	for _, fqdn := range plan.Servers {
 		srv, err := mssqlz.GetServer(ctx, fqdn)
 		if err != nil {
 			child.Error(errors.Wrap(err, fqdn).Error(), slog.String("action", ActionCheckdb))
+			continue
+		}
+		dupe := dupecheck.IsDupe(srv)
+		if dupe {
+			child.Warn(fmt.Sprintf("duplicate: %s", srv.Path()))
 			continue
 		}
 		dbs, err := mssqlz.OnlineDatabases(ctx, fqdn)
