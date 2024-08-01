@@ -122,11 +122,8 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 		}
 
 		// check the minimum interval
-		if plan.CheckDB.MinIntervalDays > 0 {
-			notBefore := db.LastDBCC.Add(time.Duration(plan.CheckDB.MinIntervalDays)*24 - 1*time.Hour)
-			if notBefore.Before(time.Now()) {
-				continue
-			}
+		if intervalTooEarly(db, plan.CheckDB.MinIntervalDays) {
+			continue
 		}
 
 		filteredDatabases = append(filteredDatabases, db)
@@ -239,4 +236,14 @@ func contains(list []string, value string) bool {
 		}
 	}
 	return false
+}
+
+// intervalTooEarly returns true if we are trying to run
+// CheckDB too early
+func intervalTooEarly(db mssqlz.Database, days int) bool {
+	if days == 0 {
+		return false
+	}
+	nextTime := db.LastDBCC.Add((time.Duration(days)*24 - 1) * time.Hour)
+	return nextTime.After(time.Now())
 }

@@ -44,3 +44,11 @@ func TestDatabaseSort(t *testing.T) {
 	assert.Equal("Two", dd[3].DatabaseName, "i=3")
 	assert.Equal("One", dd[4].DatabaseName, "i=4")
 }
+
+func TestIntervalTooEarly(t *testing.T) {
+	assert := assert.New(t)
+	now := time.Now()
+	db := mssqlz.Database{LastDBCC: now.Add((-1 * 3 * 24) * time.Hour)}
+	assert.True(intervalTooEarly(db, 7))
+	assert.False(intervalTooEarly(db, 2))
+}
