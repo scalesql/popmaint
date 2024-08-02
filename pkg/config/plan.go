@@ -106,9 +106,7 @@ func (p Plan) MaxDop(cores, maxdop int) (int, error) {
 			coresnum = p.MaxDopCores
 		}
 	}
-	println(coresnum, corespct)
 	value := lowest(coresnum, corespct)
-	println(value, cores, maxdop)
 	if value >= cores || value >= maxdop {
 		return 0, nil
 	}
