@@ -1,6 +1,8 @@
 module github.com/scalesql/popmaint
 
-go 1.21.5
+go 1.22.0
+
+toolchain go1.22.5
 
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
@@ -13,6 +15,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/samber/slog-multi v1.2.0
 	github.com/stretchr/testify v1.9.0
+	gitlab.com/greyxor/slogor v1.2.10
 )
 
 require (
@@ -23,7 +26,7 @@ require (
 	github.com/spf13/afero v1.9.5 // indirect
 	golang.org/x/crypto v0.18.0 // indirect
 	golang.org/x/exp v0.0.0-20230425010034-47ecfdc1ba53 // indirect
-	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
