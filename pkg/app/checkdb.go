@@ -169,7 +169,7 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 		estimatePlan := plan
 		estimatePlan.CheckDB.EstimateOnly = true
 		aw := checkdbwriter.New()
-		err = maint.CheckDB(ctx, aw, db.FQDN, db, estimatePlan, false)
+		err = maint.CheckDB(ctx, child, db.FQDN, db, estimatePlan, false)
 		if err != nil {
 			child.Error(fmt.Errorf("checkdb estimate: %w", err).Error())
 		} else {

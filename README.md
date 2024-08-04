@@ -3,6 +3,9 @@ PopMaint
 
 TODO
 ----
+* If physical only, then we can't do extended logical checks.  It errors.
+* Need to incorporate ExecMon and writing the output to a logger (or a writer?)
+    * Can I wrap a logger in a writer?  No.  I need INFO and ERR.
 * Make the console logger just be default slog.  Nothing special. It needs to be narrower.
 * What does `dev` flag do?
 * Need to write better JSON field stuff
