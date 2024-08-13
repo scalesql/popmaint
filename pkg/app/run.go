@@ -44,7 +44,7 @@ func Run(dev bool, planName string, noexec bool) int {
 		fmt.Println("ERROR", err.Error())
 		return 1
 	}
-	defer func(lx *px.PX) {
+	defer func(lx px.PX) {
 		err := lx.Close()
 		if err != nil {
 			fmt.Println("ERROR", err.Error())

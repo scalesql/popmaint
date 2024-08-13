@@ -41,15 +41,15 @@ type PX struct {
 }
 
 // jobid is 20240813_055211_plan1
-func New(name, payload string) (*PX, error) {
+func New(name, payload string) (PX, error) {
 	now := time.Now()
 	jobid := fmt.Sprintf("%s_%s", now.Format("20060102_150405"), name)
 	// get the log file
 	jsonFile, err := getLogFile(now, name, "ndjson")
 	if err != nil {
-		return nil, err
+		return PX{}, err
 	}
-	lx := &PX{
+	lx := PX{
 		mu:       &sync.Mutex{},
 		console:  os.Stdout,
 		jsonFile: jsonFile,
@@ -69,17 +69,17 @@ func (px *PX) Close() error {
 	return nil
 }
 
-func (px *PX) Debug(msg string, args ...any) {
+func (px PX) Debug(msg string, args ...any) {
 	px.Log(LevelDebug, msg, args...)
 }
 
-func (px *PX) Info(msg string, args ...any) {
+func (px PX) Info(msg string, args ...any) {
 	px.Log(LevelInfo, msg, args...)
 }
-func (px *PX) Warn(msg string, args ...any) {
+func (px PX) Warn(msg string, args ...any) {
 	px.Log(LevelWarn, msg, args...)
 }
-func (px *PX) Error(msg string, args ...any) {
+func (px PX) Error(msg string, args ...any) {
 	px.Log(LevelError, msg, args...)
 }
 

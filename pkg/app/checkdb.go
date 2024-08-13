@@ -19,13 +19,12 @@ import (
 )
 
 type Engine struct {
-	//logger *slog.Logger
-	logger *px.PX
+	logger px.PX
 	st     *state.State
 	start  time.Time
 }
 
-func NewEngine(logger *px.PX, st *state.State) Engine {
+func NewEngine(logger px.PX, st *state.State) Engine {
 	return Engine{
 		logger: logger,
 		st:     st,

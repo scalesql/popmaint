@@ -2,7 +2,6 @@ package mssqlz
 
 import (
 	"context"
-	"log/slog"
 	"strings"
 	"time"
 
@@ -57,15 +56,15 @@ func OnlineDatabases(ctx context.Context, fqdn string) ([]Database, error) {
 	return databases, err
 }
 
-func (db Database) Attrs() ([]slog.Attr, error) {
-	attrs := make([]slog.Attr, 0)
-	attrs = append(attrs,
-		slog.Group("popmaint",
-			slog.Group("target",
-				slog.String("fqdn", db.FQDN),
-				)))
-	return attrs, nil
-}
+// func (db Database) Attrs() ([]slog.Attr, error) {
+// 	attrs := make([]slog.Attr, 0)
+// 	attrs = append(attrs,
+// 		slog.Group("popmaint",
+// 			slog.Group("target",
+// 				slog.String("fqdn", db.FQDN),
+// 				)))
+// 	return attrs, nil
+// }
 
 // TODO: Add updateability
 var dblistQuery = `
