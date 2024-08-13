@@ -3,7 +3,6 @@ package maint
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"strings"
 	"time"
 
@@ -34,7 +33,7 @@ func CheckDB(ctx context.Context, logger lockmon.ExecLogger, host string, db mss
 		return fmt.Errorf("can't set data_purity and physical_only")
 	}
 	stmt := makeCheckDBStatement(db.DatabaseName, plan, maxdop)
-	logger.Debug(stmt, slog.String("server", db.ServerName), slog.String("database", db.DatabaseName))
+	logger.Debug(stmt, "server", db.ServerName, "database", db.DatabaseName)
 
 	if !noexec {
 		//err = mssqlz.ExecContext(ctx, pool, stmt, logger)

@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"context"
 	"fmt"
-	"log/slog"
 	"slices"
 	"strings"
 	"time"
@@ -13,18 +12,20 @@ import (
 	"github.com/scalesql/popmaint/pkg/config"
 	"github.com/scalesql/popmaint/pkg/maint"
 	"github.com/scalesql/popmaint/pkg/mssqlz"
+	"github.com/scalesql/popmaint/pkg/px"
 	"github.com/scalesql/popmaint/pkg/state"
 
 	"github.com/pkg/errors"
 )
 
 type Engine struct {
-	logger *slog.Logger
+	//logger *slog.Logger
+	logger *px.PX
 	st     *state.State
 	start  time.Time
 }
 
-func NewEngine(logger *slog.Logger, st *state.State) Engine {
+func NewEngine(logger *px.PX, st *state.State) Engine {
 	return Engine{
 		logger: logger,
 		st:     st,
@@ -44,25 +45,24 @@ const (
 )
 
 func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec bool) int {
-	child := engine.logger.With(slog.String("action", ActionCheckdb))
+	//child := engine.logger.With(slogxx.String("action", ActionCheckdb))
+	child := engine.logger
 	var err error
 	exitCode := 0
 	timeLimit := time.Duration(plan.CheckDB.TimeLimit)
 	child.Info(
-		fmt.Sprintf("checkdb: time: %s  max_size_mb: %d  no_index: %t  physical_only: %t",
+		fmt.Sprintf("CHECKDB: time: %s  max_size_mb: %d  no_index: %t  physical_only: %t",
 			timeLimit, plan.CheckDB.MaxSizeMB, plan.CheckDB.NoIndex, plan.CheckDB.PhysicalOnly),
 		"time_limit", timeLimit.String(),
-		slog.Group(ActionCheckdb,
-			"no_index", plan.CheckDB.NoIndex,
-			"physical_only", plan.CheckDB.PhysicalOnly,
-			"max_size_mb", plan.CheckDB.MaxSizeMB,
-			"info_messages", plan.CheckDB.InfoMessages,
-		),
+		"checkdb.no_index", plan.CheckDB.NoIndex,
+		"checkdb.physical_only", plan.CheckDB.PhysicalOnly,
+		"checkdb.max_size_mb", plan.CheckDB.MaxSizeMB,
+		"checkdb.info_messages", plan.CheckDB.InfoMessages,
 	)
 
 	if plan.CheckDB.EstimateOnly && !plan.CheckDB.InfoMessages {
 		plan.CheckDB.InfoMessages = true
-		child.Warn("WARN: 'info_messages' set to 'true' to display estimates", slog.String("action", ActionCheckdb))
+		child.Warn("'info_messages' set to 'true' to display estimates", "action", ActionCheckdb)
 	}
 
 	// loop through all servers and get databases
@@ -71,17 +71,17 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 	for _, fqdn := range plan.Servers {
 		srv, err := mssqlz.GetServer(ctx, fqdn)
 		if err != nil {
-			child.Error(errors.Wrap(err, fqdn).Error(), slog.String("action", ActionCheckdb))
+			child.Error(errors.Wrap(err, fqdn).Error(), "action", ActionCheckdb)
 			continue
 		}
 		dupe := dupecheck.IsDupe(srv)
 		if dupe {
-			child.Warn(fmt.Sprintf("duplicate: %s", srv.Path()))
+			child.Warn(fmt.Sprintf("CHECKDB: duplicate: %s", srv.Path()))
 			continue
 		}
 		dbs, err := mssqlz.OnlineDatabases(ctx, fqdn)
 		if err != nil {
-			child.Error(errors.Wrap(err, fqdn).Error(), slog.String("action", ActionCheckdb))
+			child.Error(errors.Wrap(err, fqdn).Error(), "action", ActionCheckdb)
 			continue
 		}
 		databases = append(databases, dbs...)
@@ -89,9 +89,9 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 		for _, db := range dbs {
 			size += db.DatabaseMB
 		}
-		child.Info(fmt.Sprintf("%s:  server: %s  databases: %d  size_mb: %d", fqdn, srv.ServerName, len(dbs), size),
-			slog.String("server", srv.ServerName),
-			slog.Int("databases", len(dbs)))
+		child.Info(fmt.Sprintf("CHECKDB: %s:  server: %s  databases: %d  size_mb: %d", fqdn, srv.ServerName, len(dbs), size),
+			"server", srv.ServerName,
+			"databases", len(dbs))
 	}
 
 	// sort the databases, filter, and get state
@@ -136,9 +136,9 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 		totals.count++
 		totals.size += db.DatabaseMB
 	}
-	child.Info(fmt.Sprintf("checkdb (filtered): databases: %d  size_mb: %d", totals.count, totals.size),
-		slog.Int("databases", totals.count),
-		slog.Int("size_mb", totals.size),
+	child.Info(fmt.Sprintf("CHECKDB: (filtered): databases: %d  size_mb: %d", totals.count, totals.size),
+		"databases", totals.count,
+		"size_mb", totals.size,
 	)
 	// sort databases
 	sortDatabasesForDBCC(filteredDatabases)
@@ -150,19 +150,17 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 	for _, db := range filteredDatabases {
 		if timeLimit.Seconds() > 0 {
 			if time.Now().After(start.Add(timeLimit)) {
-				child.Warn(fmt.Sprintf("%s: time_limit (%s) exceeded", plan.Name, timeLimit))
+				child.Warn(fmt.Sprintf("CHECKDB: %s: time_limit (%s) exceeded", plan.Name, timeLimit))
 				break
 			}
 		}
 
-		child.Info(fmt.Sprintf("checkdb: %s.%s (%d mb)  last_dbcc: %s",
+		child.Info(fmt.Sprintf("CHECKDB: %s.%s (%d mb)  last_dbcc: %s",
 			db.ServerName, db.DatabaseName, db.DatabaseMB, db.LastDBCC),
-			slog.String("server", db.ServerName),
-			slog.String("database", db.DatabaseName),
-			slog.Int("size_mb", db.DatabaseMB),
-			slog.Group(ActionCheckdb,
-				slog.String("last_dbcc", db.LastDBCC.Format(time.RFC3339)),
-			),
+			"server", db.ServerName,
+			"database", db.DatabaseName,
+			"size_mb", db.DatabaseMB,
+			"checkdb.last_dbcc", db.LastDBCC.Format(time.RFC3339),
 		)
 
 		// get the estimated tempdb space
@@ -171,7 +169,7 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 		aw := checkdbwriter.New()
 		err = maint.CheckDB(ctx, child, db.FQDN, db, estimatePlan, false)
 		if err != nil {
-			child.Error(fmt.Errorf("checkdb estimate: %w", err).Error())
+			child.Error(fmt.Errorf("CHECKDB estimate: %w", err).Error())
 		} else {
 			estimatedKB := aw.EstimateKB()
 			if estimatedKB != 0 {
@@ -184,29 +182,29 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 		if err != nil {
 			// Log the error and keep going
 			exitCode = 1
-			child.Error(fmt.Sprintf("%s: %s", db.ServerName, err.Error()))
+			child.Error(fmt.Sprintf("CHECKDB: %s: %s", db.ServerName, err.Error()))
 			continue // so we don't set the state
 		}
 		if !noexec { // if we really did it, save it
 			err = engine.st.SetLastCheckDB(db)
 			if err != nil {
-				child.Error(fmt.Errorf("setlastcheckdb: %w", err).Error())
+				child.Error(fmt.Errorf("CHECKDB: setlastcheckdb: %w", err).Error())
 				exitCode = 1
 			}
 			// TODO Log the run time for this: FQDN, server, database, size, duration (rounded to second)
 			if !plan.CheckDB.EstimateOnly {
-				child.Info(fmt.Sprintf("DBCC CHECKDB: %s.%s size_mb=%d  duration=%s", db.ServerName, db.DatabaseName, db.DatabaseMB, time.Since(t0).Round(1*time.Second)),
-					slog.Int("size_mb", db.DatabaseMB),
-					slog.String("duration", time.Since(t0).Round(1*time.Second).String()),
-					slog.Int("duration_sec", int(time.Since(t0).Round(1*time.Second).Seconds())),
-					slog.Any("checkdb", plan.CheckDB),
+				child.Info(fmt.Sprintf("CHECKDB: %s.%s size_mb=%d  duration=%s", db.ServerName, db.DatabaseName, db.DatabaseMB, time.Since(t0).Round(1*time.Second)),
+					"size_mb", db.DatabaseMB,
+					"duration", time.Since(t0).Round(1*time.Second).String(),
+					"duration_sec", int(time.Since(t0).Round(1*time.Second).Seconds()),
+					"checkdb", plan.CheckDB,
 				)
 			}
 		}
 		totals.count++
 		totals.size += db.DatabaseMB
 	}
-	child.Info(fmt.Sprintf("checkdb: %d database(s) at %d mb in %s", totals.count, totals.size, time.Since(start).Round(1*time.Second).String()),
+	child.Info(fmt.Sprintf("CHECKDB: %d database(s) at %d mb in %s", totals.count, totals.size, time.Since(start).Round(1*time.Second).String()),
 		"databases", totals.count,
 		"size_mb", totals.size,
 		"duration", time.Since(start).Round(1*time.Second).String(),

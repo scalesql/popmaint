@@ -3,22 +3,15 @@ PopMaint
 
 TODO
 ----
+_ license for non-commercial
 * If physical only, then we can't do extended logical checks.  It errors.
 * Need to incorporate ExecMon and writing the output to a logger (or a writer?)
     * Can I wrap a logger in a writer?  No.  I need INFO and ERR.
-* Make the console logger just be default slog.  Nothing special. It needs to be narrower.
-* What does `dev` flag do?
-* Need to write better JSON field stuff
 * Only log successful completions stuff through the passed in logger
-    * All the "I'm working on stuff" goes through stdout to `slog.Info`
-* logx? For nested groups?
-* Just log to stdout until the logger is setup
-* Look for plans in root folder first, then look in `plans`
-    * Assume it has a `toml` extension -- but check for both
+    * All the "I'm working on stuff" goes through stdout to console
 * Skip any server less than 2014 and log a warning
-* `min_frequency` -- don't CheckDB unless this many days have passed
-* Maybe I should log to a struct?  That has all the fields I want.  And maybe some subfields?  Like CheckDB.
-
+_ Get the functions and constants to the logger
+_ color logging
 
 Terminology
 -----------

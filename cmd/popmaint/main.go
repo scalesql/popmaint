@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
+	"time"
 
 	"github.com/scalesql/popmaint/pkg/app"
 	"github.com/scalesql/popmaint/pkg/build"
@@ -20,7 +20,7 @@ func main() {
 	exename, err := os.Executable()
 	if err != nil {
 		fmt.Println(err.Error())
-		os.Exit(1)
+		exit(1)
 	}
 	flag.StringVar(&plan, "plan", "", "plan to run")
 	flag.BoolVar(&noexec, "noexec", false, "do not execute the DBCC (display only)")
@@ -31,6 +31,7 @@ func main() {
 
 	flag.Parse()
 	if exitCode != 0 {
+		fmt.Println("handling -exit flag")
 		exit(exitCode)
 		return
 	}
@@ -39,8 +40,8 @@ func main() {
 		return
 	}
 	if plan == "" {
-		log.Fatal("fatal: --plan is required")
-		os.Exit(1)
+		fmt.Println("FATAL: --plan is required")
+		exit(1)
 	}
 	exitCode = app.Run(dev, plan, noexec)
 	exit(exitCode)
@@ -50,11 +51,14 @@ func exit(code int) {
 	if code == 0 {
 		os.Exit(0)
 	}
+
 	if code > 125 {
-		os.Exit(125)
+		code = 125
 	}
 	if code < 0 {
-		os.Exit(0)
+		code = 0
 	}
+
+	fmt.Printf("%s EXIT: %d\n", time.Now().Format("15:04:05"), code)
 	os.Exit(code)
 }

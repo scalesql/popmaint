@@ -10,7 +10,7 @@ import (
 	slogmulti "github.com/samber/slog-multi"
 )
 
-func getLogger(name string, dev bool) (*slog.Logger, []*os.File, error) {
+func getLogger(name string) (*slog.Logger, []*os.File, error) {
 	// noattrs removes all attributes except the big three
 	// noattrs := func(groups []string, a slog.Attr) slog.Attr {
 	// 	if a.Key == slog.TimeKey || a.Key == slog.LevelKey || a.Key == slog.MessageKey {
