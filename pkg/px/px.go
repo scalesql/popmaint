@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"sync"
 	"time"
+
+	"github.com/fatih/color"
+	"golang.org/x/term"
 )
 
 type Field struct {
@@ -134,15 +136,25 @@ func (px *PX) logConsole(now time.Time, level Level, msg string) {
 	if level < px.level {
 		return
 	}
-	out := []string{}
-	out = append(out, now.Format("15:04:05"))
+	out := ""
+
 	if level >= LevelWarn {
-		//out = append(out, fmt.Sprintf("%s", level))
-		out = append(out, level.String())
+		out += level.String() + " "
 	}
-	out = append(out, msg)
-	//out += "\n"
-	line := strings.Join(out, " ") + "\n"
+	out += msg
+	if term.IsTerminal(int(os.Stdout.Fd())) {
+		switch level {
+		case LevelError:
+			red := color.New(color.FgRed).SprintFunc()
+			out = red(out)
+		case LevelWarn:
+			yellow := color.New(color.FgYellow).SprintFunc()
+			out = yellow(out)
+		default:
+		}
+	}
+	out += "\n"
+	line := fmt.Sprintf("%s %s", now.Format("15:04:05"), out)
 	px.console.Write([]byte(line))
 }
 

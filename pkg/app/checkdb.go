@@ -74,7 +74,7 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 		}
 		dupe := dupecheck.IsDupe(srv)
 		if dupe {
-			child.Warn(fmt.Sprintf("CHECKDB: duplicate: %s", srv.Path()))
+			child.Warn(fmt.Sprintf("CHECKDB: duplicate: %s => %s", fqdn, srv.Path()))
 			continue
 		}
 		dbs, err := mssqlz.OnlineDatabases(ctx, fqdn)

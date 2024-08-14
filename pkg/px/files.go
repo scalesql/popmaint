@@ -8,11 +8,11 @@ import (
 )
 
 func getLogFile(now time.Time, name string, ext string) (*os.File, error) {
-	err := os.MkdirAll(filepath.Join(".", "logs", "text"), os.ModePerm)
-	if err != nil {
-		return nil, fmt.Errorf("os.mkdirall: %w", err)
-	}
-	err = os.MkdirAll(filepath.Join(".", "logs", "json"), os.ModePerm)
+	// err := os.MkdirAll(filepath.Join(".", "logs", "text"), os.ModePerm)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("os.mkdirall: %w", err)
+	// }
+	err := os.MkdirAll(filepath.Join(".", "logs", "json"), os.ModePerm)
 	if err != nil {
 		return nil, fmt.Errorf("os.mkdirall: %w", err)
 	}
