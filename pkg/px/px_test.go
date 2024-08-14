@@ -126,7 +126,7 @@ func TestApplyFuncs(t *testing.T) {
 	hostname, err := os.Hostname()
 	require.NoError(err)
 	px := PX{
-		Functions: []Field{
+		Mappings: []Field{
 			{"ab", 37},
 			{"x.y", "new"},
 			{"ghn", "hostname()"},

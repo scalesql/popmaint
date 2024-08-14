@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scalesql/popmaint/pkg/checkdbwriter"
 	"github.com/scalesql/popmaint/pkg/config"
 	"github.com/scalesql/popmaint/pkg/maint"
 	"github.com/scalesql/popmaint/pkg/mssqlz"
@@ -163,18 +162,19 @@ func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec b
 		)
 
 		// get the estimated tempdb space
-		estimatePlan := plan
-		estimatePlan.CheckDB.EstimateOnly = true
-		aw := checkdbwriter.New()
-		err = maint.CheckDB(ctx, child, db.FQDN, db, estimatePlan, false)
-		if err != nil {
-			child.Error(fmt.Errorf("CHECKDB estimate: %w", err).Error())
-		} else {
-			estimatedKB := aw.EstimateKB()
-			if estimatedKB != 0 {
-				db.EstimatedTempdb = estimatedKB / 1024
-			}
-		}
+		// I'm not sure how useful this is
+		// estimatePlan := plan
+		// estimatePlan.CheckDB.EstimateOnly = true
+		// aw := checkdbwriter.New()
+		// err = maint.CheckDB(ctx, child, db.FQDN, db, estimatePlan, false)
+		// if err != nil {
+		// 	child.Error(fmt.Errorf("CHECKDB estimate: %w", err).Error())
+		// } else {
+		// 	estimatedKB := aw.EstimateKB()
+		// 	if estimatedKB != 0 {
+		// 		db.EstimatedTempdb = estimatedKB / 1024
+		// 	}
+		// }
 		//fmt.Printf("estimate: rows: %d  (%d KB)\n", len(aw.Messages()), aw.EstimateKB())
 		t0 := time.Now()
 		err = maint.CheckDB(ctx, child, db.FQDN, db, plan, noexec)

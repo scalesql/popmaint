@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -18,13 +19,14 @@ type Level int
 
 const (
 	LevelDebug = iota
+	LevelVerbose
 	LevelInfo
 	LevelWarn
 	LevelError
 )
 
 func (d Level) String() string {
-	return [...]string{"DEBUG", "INFO", "WARN", "ERROR"}[d]
+	return [...]string{"DEBUG", "INFO", "INFO", "WARN", "ERROR"}[d]
 }
 
 type PX struct {
@@ -34,9 +36,10 @@ type PX struct {
 	FormatJSON bool
 	JobID      string
 	Payload    string
-	Functions  []Field // stuff with functions and moves
+	Mappings   []Field // stuff with functions and moves
 	Fields     []Field // fields for child loggers, etc.
 	Constants  map[string]any
+	level      Level
 	//Statics   map[string]any // result of static functions
 }
 
@@ -55,6 +58,7 @@ func New(name, payload string) (PX, error) {
 		jsonFile: jsonFile,
 		Payload:  payload,
 		JobID:    jobid,
+		level:    LevelInfo,
 	}
 	return lx, nil
 }
@@ -69,10 +73,28 @@ func (px *PX) Close() error {
 	return nil
 }
 
+func (px *PX) SetMappings(m map[string]any) error {
+	dotted, err := nested2dotted(m)
+	if err != nil {
+		return err
+	}
+	px.mu.Lock()
+	defer px.mu.Unlock()
+	mappings := make([]Field, 0, len(dotted))
+	for k, v := range dotted {
+		kv := Field{K: k, V: v}
+		mappings = append(mappings, kv)
+	}
+	px.Mappings = mappings
+	return nil
+}
+
 func (px PX) Debug(msg string, args ...any) {
 	px.Log(LevelDebug, msg, args...)
 }
-
+func (px PX) Verbose(msg string, args ...any) {
+	px.Log(LevelVerbose, msg, args...)
+}
 func (px PX) Info(msg string, args ...any) {
 	px.Log(LevelInfo, msg, args...)
 }
@@ -98,7 +120,7 @@ func (px *PX) Log(level Level, msg string, args ...any) {
 	for _, err := range errs {
 		px.logConsole(now, LevelError, fmt.Errorf("px.logjson: %w", err).Error())
 	}
-	err := px.logJSON(m)
+	err := px.logJSON(level, m)
 	if err != nil {
 		px.logConsole(now, LevelError, fmt.Errorf("px.logjson: %w", err).Error())
 	}
@@ -109,16 +131,25 @@ func (px *PX) Console(level Level, msg string) {
 }
 
 func (px *PX) logConsole(now time.Time, level Level, msg string) {
-	out := now.Format("15:04:05")
-	if level >= LevelWarn {
-		out += fmt.Sprintf(" %s", level)
+	if level < px.level {
+		return
 	}
-	out += " " + msg
-	out += "\n"
-	px.console.Write([]byte(out))
+	out := []string{}
+	out = append(out, now.Format("15:04:05"))
+	if level >= LevelWarn {
+		//out = append(out, fmt.Sprintf("%s", level))
+		out = append(out, level.String())
+	}
+	out = append(out, msg)
+	//out += "\n"
+	line := strings.Join(out, " ") + "\n"
+	px.console.Write([]byte(line))
 }
 
-func (px *PX) logJSON(m map[string]any) error {
+func (px *PX) logJSON(level Level, m map[string]any) error {
+	if level < px.level {
+		return nil
+	}
 	// make a nested map
 	nested, err := dotted2nested(m)
 	if err != nil {

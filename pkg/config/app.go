@@ -9,6 +9,9 @@ import (
 
 type AppConfig struct {
 	LogRetentionDays int `toml:"log_retention_days"`
+	Logging          struct {
+		Fields map[string]any `toml:"fields"`
+	} `toml:"logging"`
 }
 
 func ReadConfig() (AppConfig, error) {

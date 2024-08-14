@@ -39,6 +39,12 @@ func Run(dev bool, planName string, noexec bool) int {
 	// 	}(logFiles[i])
 	// }
 
+	err = px.CleanUpLogs(30, "json", "*.ndjson")
+	if err != nil {
+		fmt.Println("ERROR cleanuplogs: ", err.Error())
+		return 1
+	}
+
 	logger, err := px.New(planName, "popmaint")
 	if err != nil {
 		fmt.Println("ERROR", err.Error())
@@ -53,10 +59,11 @@ func Run(dev bool, planName string, noexec bool) int {
 	if dev {
 		logger.FormatJSON = true
 	}
-	logger.Functions = []px.Field{
-		{K: "global.host.name", V: "hostname()"},
-		{K: "global.env", V: "DEVELOPMENT"},
-	}
+
+	// logger.Mappings = []px.Field{
+	// 	{K: "global.host.name", V: "hostname()"},
+	// 	{K: "global.env", V: "DEVELOPMENT"},
+	// }
 
 	//logger.Info("px is here")
 	// if dev {
@@ -66,6 +73,11 @@ func Run(dev bool, planName string, noexec bool) int {
 	appconfig, err := config.ReadConfig()
 	if err != nil {
 		logger.Error(fmt.Errorf("config.readconfig: %w", err).Error())
+		return 1
+	}
+	err = logger.SetMappings(appconfig.Logging.Fields)
+	if err != nil {
+		logger.Error(fmt.Errorf("logger.setmappings: %w", err).Error())
 		return 1
 	}
 	logger.Info(fmt.Sprintf("%s: %s (%s) built %s", strings.ToUpper(exenameBase), build.Version(), build.Commit(), build.Built()))
@@ -78,12 +90,6 @@ func Run(dev bool, planName string, noexec bool) int {
 		msg += fmt.Sprintf("  noexec: %t", noexec)
 	}
 	logger.Info(msg, "log_retention_days", appconfig.LogRetentionDays)
-
-	err = px.CleanUpLogs(appconfig.LogRetentionDays, "json", "*.ndjson")
-	if err != nil {
-		logger.Error(fmt.Errorf("cleanuplogs: %w", err).Error())
-		return 1
-	}
 
 	plan, err := config.ReadPlan(planName)
 	if err != nil {

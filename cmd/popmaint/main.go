@@ -26,7 +26,6 @@ func main() {
 	flag.BoolVar(&noexec, "noexec", false, "do not execute the DBCC (display only)")
 	flag.BoolVar(&dev, "dev", false, "enable DEV settings")
 	flag.BoolVar(&version, "version", false, "print the version and exit")
-	//flag.IntVar(&exitCode, "exit", 0, "exit immediately with this code")
 	flag.IntVar(&exitCode, "exit", 0, "if not zero, exit immediately with this code")
 
 	flag.Parse()

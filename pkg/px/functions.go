@@ -10,7 +10,7 @@ import (
 
 func (px *PX) applyFuncs(m map[string]any) (map[string]any, []error) {
 	errs := make([]error, 0)
-	for _, fld := range px.Functions {
+	for _, fld := range px.Mappings {
 		val, src, fn, err := parseFunc(fld.V)
 		if err != nil {
 			errs = append(errs, err)
