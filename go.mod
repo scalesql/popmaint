@@ -17,6 +17,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	gitlab.com/greyxor/slogor v1.2.10
 	golang.org/x/term v0.23.0
+	golang.org/x/text v0.14.0
 )
 
 require (
@@ -29,7 +30,6 @@ require (
 	golang.org/x/crypto v0.18.0 // indirect
 	golang.org/x/exp v0.0.0-20230425010034-47ecfdc1ba53 // indirect
 	golang.org/x/sys v0.23.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

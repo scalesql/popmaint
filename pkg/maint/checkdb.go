@@ -36,9 +36,16 @@ func CheckDB(ctx context.Context, logger lockmon.ExecLogger, host string, db mss
 	logger.Debug(stmt, "server", db.ServerName, "database", db.DatabaseName)
 
 	if !noexec {
-		//err = mssqlz.ExecContext(ctx, pool, stmt, logger)
-
 		result := lockmon.ExecMonitor(ctx, logger, pool, stmt, time.Duration(0))
+		if result.Sessions != nil {
+			if len(result.Sessions) > 0 {
+				for _, s := range result.Sessions {
+					msg := fmt.Sprintf("id=%d blocker=%d %s", s.SessionID, s.BlockingID, mssqlz.TrimSQL(s.Statement, 60))
+					logger.Error(msg,
+						"stmt", mssqlz.TrimSQL(s.Statement, 200))
+				}
+			}
+		}
 		return result.Err
 	}
 	return nil

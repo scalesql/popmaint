@@ -3,6 +3,7 @@ PopMaint
 
 TODO
 ----
+_ have separate errors for app errors and CHECKDB errors
 _ license for non-commercial
 _ parse the TOML into mappings
 _ functions for the severity/level: severity_name(), severity_level()
