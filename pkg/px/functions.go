@@ -2,41 +2,27 @@ package px
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 )
 
 func (px *PX) applyFuncs(m map[string]any) (map[string]any, []error) {
 	errs := make([]error, 0)
-	for _, fld := range px.Mappings {
+	for _, fld := range px.mappings {
 		val, src, fn, err := parseFunc(fld.V)
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
+		// if we got back a contant value,
+		// set it and we are done
 		if val != nil {
 			m[fld.K] = val
 			continue
 		}
-		// TODO apply the functions
+
+		// else we have a function
 		switch fn {
-		case "hostname()":
-			hn, err := os.Hostname()
-			if err != nil {
-				errs = append(errs, fmt.Errorf("os.hostname: %w", err))
-				continue
-			}
-			m[fld.K] = hn
-		case "exename()":
-			val, err := os.Executable()
-			if err != nil {
-				errs = append(errs, fmt.Errorf("os.exename: %w", err))
-				continue
-			}
-			val = filepath.Base(val)
-			m[fld.K] = val
 		case "delete()":
 			delete(m, fld.K)
 		case "copy()":
@@ -44,13 +30,15 @@ func (px *PX) applyFuncs(m map[string]any) (map[string]any, []error) {
 		case "move()":
 			m[fld.K] = m[src]
 			delete(m, src)
+		// jobid() is done here because we need the jobid to
+		// match the JSON file name
 		case "jobid()":
-			if px.JobID != "" {
-				m[fld.K] = px.JobID
+			if px.jobid != "" {
+				m[fld.K] = px.jobid
 			}
-		default:
-			if px.Constants != nil {
-				cons, ok := px.Constants[fn]
+		default: // handle the cached function results
+			if px.cached != nil {
+				cons, ok := px.cached[fn]
 				if ok {
 					m[fld.K] = cons
 					continue
@@ -62,9 +50,6 @@ func (px *PX) applyFuncs(m map[string]any) (map[string]any, []error) {
 
 	return m, errs
 }
-
-// parseFieldValue
-// function vs. value
 
 // parseFunc checks for a value and/or function
 func parseFunc(value any) (any, string, string, error) {
@@ -163,14 +148,7 @@ func dotted2nested(dotted map[string]any) (map[string]any, error) {
 	return nested, nil
 }
 
-// func map2json(m map[string]any) (string, error) {
-// 	bb, err := json.Marshal(m)
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	return string(bb), nil
-// }
-
+// TODO Improve parsing and support px.Int(key, int)
 func anys2map(payload string, args ...any) map[string]any {
 	// fmt.Println(payload)
 	// fmt.Println(args...)

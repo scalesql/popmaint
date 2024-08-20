@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/scalesql/popmaint/pkg/build"
 	"github.com/scalesql/popmaint/pkg/config"
@@ -24,20 +25,6 @@ func Run(dev bool, planName string, noexec bool) int {
 	}
 	exenameBase := filepath.Base(exename)
 	ctx := context.Background()
-	// logger, logFiles, err := getLogger(planName, dev)
-	// if err != nil {
-	// 	slog.Error(err.Error())
-	// 	return 1
-	// }
-
-	// // defer closing each log file
-	// for i := range logFiles {
-	// 	defer func(f *os.File) {
-	// 		if err := f.Close(); err != nil {
-	// 			slog.Error(err.Error())
-	// 		}
-	// 	}(logFiles[i])
-	// }
 
 	err = px.CleanUpLogs(30, "json", "*.ndjson")
 	if err != nil {
@@ -56,19 +43,12 @@ func Run(dev bool, planName string, noexec bool) int {
 			fmt.Println("ERROR", err.Error())
 		}
 	}(logger)
-	if dev {
-		logger.FormatJSON = true
-	}
+	logger.SetFormatJSON(dev)
 
-	// logger.Mappings = []px.Field{
-	// 	{K: "global.host.name", V: "hostname()"},
-	// 	{K: "global.env", V: "DEVELOPMENT"},
-	// }
-
-	//logger.Info("px is here")
-	// if dev {
-	// 	fmt.Println(strings.Repeat("-", 120), "<- 120 chars")
-	// }
+	logger.SetCached("exename()", exenameBase)
+	logger.SetCached("commit()", build.Commit())
+	logger.SetCached("version()", build.Version())
+	logger.SetCached("built()", build.Built().Format(time.RFC3339))
 
 	appconfig, err := config.ReadConfig()
 	if err != nil {
@@ -81,7 +61,6 @@ func Run(dev bool, planName string, noexec bool) int {
 		return 1
 	}
 	logger.Info(fmt.Sprintf("%s: %s (%s) built %s", strings.ToUpper(exenameBase), build.Version(), build.Commit(), build.Built()))
-	// TODO add build information to global, and full exepath
 	msg := strings.ToUpper(exenameBase)
 	if dev {
 		msg += fmt.Sprintf("  dev: %t", dev)

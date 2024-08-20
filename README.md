@@ -3,10 +3,13 @@ PopMaint
 
 TODO
 ----
+_ add trace level
+_ add command-line and TOML settings for trace, debug, verbose
 _ have separate errors for app errors and CHECKDB errors
+_ email certain kinds of alerts?
 _ license for non-commercial
-_ parse the TOML into mappings
 _ functions for the severity/level: severity_name(), severity_level()
+_ switch "popmaint" to a global value in the `global` package
 
 * If physical only, then we can't do extended logical checks.  It errors.
 * Skip any server less than 2014 and log a warning?

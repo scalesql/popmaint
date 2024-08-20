@@ -1,15 +1,11 @@
 package px
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"sync"
 	"time"
-
-	"github.com/fatih/color"
-	"golang.org/x/term"
 )
 
 type Field struct {
@@ -17,51 +13,64 @@ type Field struct {
 	V any
 }
 
-type Level int
-
-const (
-	LevelDebug = iota
-	LevelVerbose
-	LevelInfo
-	LevelWarn
-	LevelError
-)
-
-func (d Level) String() string {
-	return [...]string{"DEBUG", "INFO", "INFO", "WARN", "ERROR"}[d]
-}
-
+// PX is the parent structure for logging
 type PX struct {
-	mu         *sync.Mutex
-	console    io.Writer
-	jsonFile   io.WriteCloser
-	FormatJSON bool
-	JobID      string
-	Payload    string
-	Mappings   []Field // stuff with functions and moves
-	Fields     []Field // fields for child loggers, etc.
-	Constants  map[string]any
-	level      Level
-	//Statics   map[string]any // result of static functions
+	mu       *sync.Mutex
+	console  io.Writer
+	jsonFile io.WriteCloser
+	level    Level
+	jobid    string // yyyymmdd_hhmmss_plan
+	payload  string // field name of the payload
+
+	// mappings are the default things we read from a config
+	// file and apply to all things we log
+	mappings []Field
+
+	// cached holds function results that are pre-calculated
+	// and cached.  They should be in the form of "version()": "1.2".
+	// It does a simple lookup on the function name.
+	cached map[string]any
+
+	formatJSON bool // writes formatted JSON for DEV
 }
 
 // jobid is 20240813_055211_plan1
-func New(name, payload string) (PX, error) {
+func New(plan, payload string) (PX, error) {
 	now := time.Now()
-	jobid := fmt.Sprintf("%s_%s", now.Format("20060102_150405"), name)
-	// get the log file
-	jsonFile, err := getLogFile(now, name, "ndjson")
+	lx, err := setup(now, plan, payload)
 	if err != nil {
 		return PX{}, err
 	}
+	// get the log file
+	jsonFile, err := getLogFile(now, plan, "ndjson")
+	if err != nil {
+		return PX{}, err
+	}
+	lx.jsonFile = jsonFile
+
+	return lx, nil
+}
+
+// setup defaults for the PX object
+func setup(now time.Time, plan, payload string) (PX, error) {
+	jobid := fmt.Sprintf("%s_%s", now.Format("20060102_150405"), plan)
 	lx := PX{
 		mu:       &sync.Mutex{},
 		console:  os.Stdout,
-		jsonFile: jsonFile,
-		Payload:  payload,
-		JobID:    jobid,
+		payload:  payload,
+		jobid:    jobid,
 		level:    LevelInfo,
+		cached:   make(map[string]any),
+		mappings: []Field{},
 	}
+	// set cached function results
+	hn, err := os.Hostname()
+	if err != nil {
+		return PX{}, err
+	}
+	lx.cached["hostname()"] = hn
+	lx.cached["pid()"] = os.Getpid()
+
 	return lx, nil
 }
 
@@ -87,102 +96,14 @@ func (px *PX) SetMappings(m map[string]any) error {
 		kv := Field{K: k, V: v}
 		mappings = append(mappings, kv)
 	}
-	px.Mappings = mappings
+	px.mappings = mappings
 	return nil
 }
 
-func (px PX) Debug(msg string, args ...any) {
-	px.Log(LevelDebug, msg, args...)
-}
-func (px PX) Verbose(msg string, args ...any) {
-	px.Log(LevelVerbose, msg, args...)
-}
-func (px PX) Info(msg string, args ...any) {
-	px.Log(LevelInfo, msg, args...)
-}
-func (px PX) Warn(msg string, args ...any) {
-	px.Log(LevelWarn, msg, args...)
-}
-func (px PX) Error(msg string, args ...any) {
-	px.Log(LevelError, msg, args...)
-}
-
-func (px *PX) Log(level Level, msg string, args ...any) {
+// SetFormatJSON determines whether the JSON logs are written
+// to one line for formatted for humans.
+func (px *PX) SetFormatJSON(format bool) {
 	px.mu.Lock()
 	defer px.mu.Unlock()
-	now := time.Now()
-	px.logConsole(now, level, msg)
-	m := anys2map(px.Payload, args...)
-	m["time"] = now
-	m["message"] = msg
-	m["level"] = level.String()
-	//m["global.host.name"] = "D40"
-
-	m, errs := px.applyFuncs(m)
-	for _, err := range errs {
-		px.logConsole(now, LevelError, fmt.Errorf("px.logjson: %w", err).Error())
-	}
-	err := px.logJSON(level, m)
-	if err != nil {
-		px.logConsole(now, LevelError, fmt.Errorf("px.logjson: %w", err).Error())
-	}
-}
-
-func (px *PX) Console(level Level, msg string) {
-	px.logConsole(time.Now(), level, msg)
-}
-
-func (px *PX) logConsole(now time.Time, level Level, msg string) {
-	if level < px.level {
-		return
-	}
-	out := ""
-
-	if level >= LevelWarn {
-		out += level.String() + " "
-	}
-	out += msg
-	if term.IsTerminal(int(os.Stdout.Fd())) {
-		switch level {
-		case LevelError:
-			red := color.New(color.FgRed).SprintFunc()
-			out = red(out)
-		case LevelWarn:
-			yellow := color.New(color.FgYellow).SprintFunc()
-			out = yellow(out)
-		default:
-		}
-	}
-	out += "\n"
-	line := fmt.Sprintf("%s %s", now.Format("15:04:05"), out)
-	px.console.Write([]byte(line))
-}
-
-func (px *PX) logJSON(level Level, m map[string]any) error {
-	if level < px.level {
-		return nil
-	}
-	// make a nested map
-	nested, err := dotted2nested(m)
-	if err != nil {
-		return err
-	}
-	var bb []byte
-	if px.FormatJSON {
-		bb, err = json.MarshalIndent(nested, "", "    ")
-		if err != nil {
-			return err
-		}
-	} else {
-		bb, err = json.Marshal(nested)
-		if err != nil {
-			return err
-		}
-	}
-	bb = append(bb, "\r\n"...)
-	_, err = px.jsonFile.Write(bb)
-	if err != nil {
-		return err
-	}
-	return nil
+	px.formatJSON = format
 }
