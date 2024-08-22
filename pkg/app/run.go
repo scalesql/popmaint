@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/scalesql/popmaint/internal/failure"
 	"github.com/scalesql/popmaint/pkg/build"
 	"github.com/scalesql/popmaint/pkg/config"
 	"github.com/scalesql/popmaint/pkg/px"
@@ -18,6 +19,8 @@ import (
 var ErrRunError = errors.New("error running plan")
 
 func Run(dev bool, planName string, noexec bool) int {
+	defer failure.HandlePanic(build.Commit(), build.Built().Format(time.RFC3339))
+
 	exename, err := os.Executable()
 	if err != nil {
 		fmt.Println("ERROR", err.Error())

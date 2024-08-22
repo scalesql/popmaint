@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/scalesql/popmaint/internal/failure"
 	"github.com/scalesql/popmaint/pkg/app"
 	"github.com/scalesql/popmaint/pkg/build"
 )
@@ -16,6 +17,9 @@ func main() {
 	var dev bool
 	var version bool
 	var exitCode int
+	var panicFlag bool
+
+	defer failure.HandlePanic(build.Commit(), build.Built().Format(time.RFC3339))
 
 	exename, err := os.Executable()
 	if err != nil {
@@ -27,12 +31,17 @@ func main() {
 	flag.BoolVar(&dev, "dev", false, "enable DEV settings")
 	flag.BoolVar(&version, "version", false, "print the version and exit")
 	flag.IntVar(&exitCode, "exit", 0, "if not zero, exit immediately with this code")
+	flag.BoolVar(&panicFlag, "panic", false, "panic and exit")
 
 	flag.Parse()
 	if exitCode != 0 {
 		fmt.Println("handling -exit flag")
 		exit(exitCode)
 		return
+	}
+	if panicFlag {
+		fmt.Println("popmaint.exe: handling -panic flag")
+		panic("panic: handling -panic flag")
 	}
 	if version {
 		fmt.Printf("%s: %s (%s) built %s\n", exename, build.Version(), build.Commit(), build.Built())

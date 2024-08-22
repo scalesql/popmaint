@@ -8,6 +8,8 @@ import (
 
 	"github.com/golang-sql/sqlexp"
 	"github.com/pkg/errors"
+	"github.com/scalesql/popmaint/internal/failure"
+	"github.com/scalesql/popmaint/pkg/build"
 )
 
 // TODO montior for blocking OR being blocked
@@ -112,6 +114,7 @@ func ExecMonitor(ctx context.Context, log ExecLogger, pool *sql.DB, stmt string,
 }
 
 func (mon *monitor) runMonitor(ctx context.Context) {
+	defer failure.HandlePanic(build.Commit(), build.Built().Format(time.RFC3339))
 	//mon.log.Infof("runmon...")
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
@@ -181,6 +184,7 @@ out:
 }
 
 func (mon *monitor) runStmt(ctx context.Context, conn *sql.Conn, stmt string, log ExecLogger) {
+	defer failure.HandlePanic(build.Commit(), build.Built().Format(time.RFC3339))
 	// r, err := conn.ExecContext(ctx, stmt)
 	// result := Result{SQLResult: r, Err: err, Source: "exec", Success: err == nil}
 	loggedErrors, err := mon.execStmtContext(ctx, conn, stmt, log)
