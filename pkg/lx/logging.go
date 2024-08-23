@@ -1,4 +1,4 @@
-package px
+package lx
 
 import (
 	"encoding/json"
@@ -40,7 +40,7 @@ func (px PX) Error(msg string, args ...any) {
 	px.Log(LevelError, msg, args...)
 }
 
-func (px *PX) Log(level Level, msg string, args ...any) {
+func (px PX) Log(level Level, msg string, args ...any) {
 	px.mu.Lock()
 	defer px.mu.Unlock()
 	now := time.Now()
@@ -61,7 +61,7 @@ func (px *PX) Log(level Level, msg string, args ...any) {
 	}
 }
 
-func (px *PX) Console(level Level, msg string) {
+func (px PX) Console(level Level, msg string) {
 	px.logConsole(time.Now(), level, msg)
 }
 

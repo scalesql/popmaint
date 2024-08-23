@@ -9,32 +9,36 @@ import (
 	"time"
 
 	"github.com/scalesql/popmaint/pkg/config"
+	"github.com/scalesql/popmaint/pkg/lx"
 	"github.com/scalesql/popmaint/pkg/maint"
 	"github.com/scalesql/popmaint/pkg/mssqlz"
-	"github.com/scalesql/popmaint/pkg/px"
 	"github.com/scalesql/popmaint/pkg/state"
 
 	"github.com/pkg/errors"
 )
 
 type Engine struct {
-	logger px.PX
+	logger lx.Logger
 	st     *state.State
 	start  time.Time
+	JobID  string
+	Plan   config.Plan
 }
 
-func NewEngine(logger px.PX, st *state.State) Engine {
-	return Engine{
+func NewEngine(logger lx.Logger, plan config.Plan, st *state.State) Engine {
+	engine := Engine{
 		logger: logger,
 		st:     st,
 		start:  time.Now(),
+		Plan:   plan,
 	}
+	return engine
 }
 
-func (engine *Engine) runPlan(ctx context.Context, plan config.Plan, noexec bool) int {
+func (engine *Engine) runPlan(ctx context.Context, noexec bool) int {
 	// TODO sort the plan entries and run in order
 	// use participle to get all the sections in order
-	return engine.runCheckDB(ctx, plan, noexec)
+	return engine.runCheckDB(ctx, noexec)
 }
 
 const (
@@ -42,9 +46,10 @@ const (
 	ActionBackup  = "backup"
 )
 
-func (engine *Engine) runCheckDB(ctx context.Context, plan config.Plan, noexec bool) int {
+func (engine *Engine) runCheckDB(ctx context.Context, noexec bool) int {
+	plan := engine.Plan
 	//child := engine.logger.With(slogxx.String("action", ActionCheckdb))
-	child := engine.logger
+	child := engine.logger.WithFields("action", "checkdb")
 	var err error
 	exitCode := 0
 	timeLimit := time.Duration(plan.CheckDB.TimeLimit)

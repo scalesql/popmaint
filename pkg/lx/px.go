@@ -1,17 +1,10 @@
-package px
+package lx
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"sync"
-	"time"
 )
-
-type Field struct {
-	K string
-	V any
-}
 
 // PX is the parent structure for logging
 type PX struct {
@@ -35,26 +28,25 @@ type PX struct {
 }
 
 // jobid is 20240813_055211_plan1
-func New(plan, payload string) (PX, error) {
-	now := time.Now()
-	lx, err := setup(now, plan, payload)
+func New(jobid, plan, payload string) (PX, error) {
+	//now := time.Now()
+	px, err := setup(jobid, payload)
 	if err != nil {
 		return PX{}, err
 	}
 	// get the log file
-	jsonFile, err := getLogFile(now, plan, "ndjson")
+	jsonFile, err := getLogFile(jobid, "ndjson")
 	if err != nil {
 		return PX{}, err
 	}
-	lx.jsonFile = jsonFile
-
-	return lx, nil
+	px.jsonFile = jsonFile
+	return px, nil
 }
 
 // setup defaults for the PX object
-func setup(now time.Time, plan, payload string) (PX, error) {
-	jobid := fmt.Sprintf("%s_%s", now.Format("20060102_150405"), plan)
-	lx := PX{
+func setup(jobid, payload string) (PX, error) {
+	//jobid := fmt.Sprintf("%s_%s", now.Format("20060102_150405"), plan)
+	px := PX{
 		mu:       &sync.Mutex{},
 		console:  os.Stdout,
 		payload:  payload,
@@ -68,10 +60,10 @@ func setup(now time.Time, plan, payload string) (PX, error) {
 	if err != nil {
 		return PX{}, err
 	}
-	lx.cached["hostname()"] = hn
-	lx.cached["pid()"] = os.Getpid()
+	px.cached["hostname()"] = hn
+	px.cached["pid()"] = os.Getpid()
 
-	return lx, nil
+	return px, nil
 }
 
 // Close the JSON log file

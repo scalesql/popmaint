@@ -1,4 +1,4 @@
-package px
+package lx
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func getLogFile(now time.Time, name string, ext string) (*os.File, error) {
+func getLogFile(jobid, ext string) (*os.File, error) {
 	// err := os.MkdirAll(filepath.Join(".", "logs", "text"), os.ModePerm)
 	// if err != nil {
 	// 	return nil, fmt.Errorf("os.mkdirall: %w", err)
@@ -19,10 +19,10 @@ func getLogFile(now time.Time, name string, ext string) (*os.File, error) {
 	var fileName, file string
 	switch ext {
 	case "log":
-		fileName = fmt.Sprintf("%s_%s.%s", now.Format("20060102_150405"), name, ext)
+		fileName = fmt.Sprintf("%s.%s", jobid, ext)
 		file = filepath.Join(".", "logs", "text", fileName)
 	case "ndjson":
-		fileName = fmt.Sprintf("%s_%s.%s", now.Format("20060102_150405"), name, ext)
+		fileName = fmt.Sprintf("%s.%s", jobid, ext)
 		file = filepath.Join(".", "logs", "json", fileName)
 	default:
 		return nil, fmt.Errorf("invalid extension: %s", ext)

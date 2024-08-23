@@ -1,4 +1,4 @@
-package px
+package lx
 
 // SetCached sets a function result to a constant value
 // For example, "version()": "1.2".

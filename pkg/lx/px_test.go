@@ -1,15 +1,14 @@
-package px
+package lx
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestSetup(t *testing.T) {
 	require := require.New(t)
-	lx, err := setup(time.Now(), "plan", "payload")
+	lx, err := setup("xxx_jobid", "payload")
 	require.NotNil(lx)
 	require.NoError(err)
 }

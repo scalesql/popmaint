@@ -1,4 +1,4 @@
-package px
+package lx
 
 import (
 	"os"
@@ -125,8 +125,8 @@ func TestApplyFuncs(t *testing.T) {
 	require := require.New(t)
 	hostname, err := os.Hostname()
 	require.NoError(err)
-	now := time.Now()
-	px, err := setup(now, "plan", "payload")
+	//now := time.Now()
+	px, err := setup("xxxx_jobid", "payload")
 	require.NoError(err)
 	px.mappings = []Field{
 		{"ab", 37},
