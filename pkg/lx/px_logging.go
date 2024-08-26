@@ -3,6 +3,7 @@ package lx
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"time"
 
@@ -40,28 +41,71 @@ func (px PX) Error(msg string, args ...any) {
 	px.Log(LevelError, msg, args...)
 }
 
+// Log an event.  Args are passed as "k", value pairs in an array
 func (px PX) Log(level Level, msg string, args ...any) {
 	px.mu.Lock()
 	defer px.mu.Unlock()
+	argmap := anys2map("", args...)
+	px.log(level, msg, argmap)
+}
+
+// Log an event.  Args are passed as map["a.b.c"]any.
+// Child loggers build a map and use this.
+func (px PX) LogMap(level Level, msg string, m map[string]any) {
+	px.mu.Lock()
+	defer px.mu.Unlock()
+	px.log(level, msg, m)
+}
+
+func (px PX) log(level Level, msg string, fields map[string]any) {
 	now := time.Now()
 	px.logConsole(now, level, msg)
-	m := anys2map(px.payload, args...)
-	m["time"] = now
-	m["message"] = msg
-	m["level"] = level.String()
-	//m["global.host.name"] = "D40"
 
-	m, errs := px.applyFuncs(m)
+	// start with the fields from the logger
+	parms := maps.Clone(px.fields)
+
+	// add in the fields passed as parameters
+	maps.Copy(parms, fields)
+
+	// put those in the payload
+	parent := make(map[string]any)
+	nested, err := dotted2nested(parms)
+	if err != nil {
+		px.logConsole(now, LevelError, fmt.Errorf("dotted2nested: %w", err).Error())
+		// continue and keep trying with what we got
+	}
+	if len(parms) > 0 {
+		if px.payload != "" {
+			parent[px.payload] = nested
+		} else { // else just put them all at the top level
+			maps.Copy(parent, nested)
+		}
+	}
+	// overwrite the top level values I need
+	// TODO these should eventually be parameters
+	parent["time"] = now
+	parent["message"] = msg
+	parent["level"] = level.String()
+
+	// apply the functions
+	// always done after the payload and the nesting
+	p2, errs := px.applyFuncs(parent)
 	for _, err := range errs {
 		px.logConsole(now, LevelError, fmt.Errorf("px.logjson: %w", err).Error())
+		// continue and keep trying with what we got
 	}
-	err := px.logJSON(level, m)
+	// log the JSON
+	err = px.logJSON(level, p2)
 	if err != nil {
 		px.logConsole(now, LevelError, fmt.Errorf("px.logjson: %w", err).Error())
+		// continue and keep trying with what we got
 	}
 }
 
+// Console just writes to the console
 func (px PX) Console(level Level, msg string) {
+	px.mu.Lock()
+	defer px.mu.Unlock()
 	px.logConsole(time.Now(), level, msg)
 }
 

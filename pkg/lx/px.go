@@ -2,6 +2,7 @@ package lx
 
 import (
 	"io"
+	"maps"
 	"os"
 	"sync"
 )
@@ -17,16 +18,22 @@ type PX struct {
 
 	// mappings are the default things we read from a config
 	// file and apply to all things we log
-	mappings []Field
+	// these should be applied last
+	mappings []KV
 
 	// cached holds function results that are pre-calculated
 	// and cached.  They should be in the form of "version()": "1.2".
 	// It does a simple lookup on the function name.
 	cached map[string]any
 
+	// fields are any default fields assigned to this logger.
+	// it is in the form "a.b.c":7
+	fields map[string]any
+
 	formatJSON bool // writes formatted JSON for DEV
 }
 
+// New returns a new logger.
 // jobid is 20240813_055211_plan1
 func New(jobid, plan, payload string) (PX, error) {
 	//now := time.Now()
@@ -53,7 +60,8 @@ func setup(jobid, payload string) (PX, error) {
 		jobid:    jobid,
 		level:    LevelInfo,
 		cached:   make(map[string]any),
-		mappings: []Field{},
+		mappings: []KV{},
+		fields:   make(map[string]any),
 	}
 	// set cached function results
 	hn, err := os.Hostname()
@@ -66,6 +74,15 @@ func setup(jobid, payload string) (PX, error) {
 	return px, nil
 }
 
+// AddFields adds default fields to the logger.
+// Keys should be dotted ("a.b.c").
+func (px *PX) AddFields(args ...any) {
+	px.mu.Lock()
+	defer px.mu.Unlock()
+	parms := args2map(args...)
+	maps.Copy(px.fields, parms)
+}
+
 // Close the JSON log file
 func (px *PX) Close() error {
 	px.mu.Lock()
@@ -76,6 +93,8 @@ func (px *PX) Close() error {
 	return nil
 }
 
+// SetMappings accepts mapping functions and adds them
+// to the logger
 func (px *PX) SetMappings(m map[string]any) error {
 	dotted, err := nested2dotted(m)
 	if err != nil {
@@ -83,9 +102,9 @@ func (px *PX) SetMappings(m map[string]any) error {
 	}
 	px.mu.Lock()
 	defer px.mu.Unlock()
-	mappings := make([]Field, 0, len(dotted))
+	mappings := make([]KV, 0, len(dotted))
 	for k, v := range dotted {
-		kv := Field{K: k, V: v}
+		kv := KV{K: k, V: v}
 		mappings = append(mappings, kv)
 	}
 	px.mappings = mappings

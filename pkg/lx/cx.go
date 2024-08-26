@@ -4,14 +4,14 @@ import (
 	"maps"
 )
 
-// CX wraps a logger
-// but is mostly a passthrough
+// CX is a "child" logger that wraps a PX.
+// It is mostly a pass-through
 type CX struct {
 	px     *PX            // wrap the logger
 	fields map[string]any // fields for this logger
 }
 
-// WithFields returns a child logger with some new default fields
+// WithFields returns a child logger from a PX with default fields
 func (px PX) WithFields(args ...any) CX {
 	cx := CX{
 		px: &px,
@@ -20,6 +20,7 @@ func (px PX) WithFields(args ...any) CX {
 	return cx
 }
 
+// WithFields returns a child logger from a CX with additional default fields
 func (cx CX) WithFields(args ...any) CX {
 	child := CX{
 		px:     cx.px,
@@ -35,19 +36,17 @@ func (cx CX) WithFields(args ...any) CX {
 	return child
 }
 
+// Log an event
 func (cx CX) Log(level Level, msg string, args ...any) {
-	final := make(map[string]any)
-
-	// copy the fields from the child
-	maps.Copy(final, cx.fields)
-
+	// start with the default fields
+	final := maps.Clone(cx.fields)
 	// copy the fields we just got
 	m := args2map(args...)
 	maps.Copy(final, m)
-	newargs := map2args(final)
-	cx.px.Log(level, msg, newargs...)
+	cx.px.LogMap(level, msg, final)
 }
 
+// Console writes to the console
 func (cx CX) Console(level Level, msg string) {
 	cx.px.Console(level, msg)
 }

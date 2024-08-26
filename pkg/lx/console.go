@@ -2,11 +2,10 @@ package lx
 
 import (
 	"fmt"
-	"os"
-	"sync"
 )
 
-// ConsoleWriter just writes the text and JSON to the console
+// ConsoleWriter just writes the text and JSON to the console.
+// It is mostly used for testing and POC.
 type ConsoleWriter struct{}
 
 func (cw ConsoleWriter) Write(bb []byte) (int, error) {
@@ -18,15 +17,11 @@ func (cw ConsoleWriter) Close() error {
 	return nil
 }
 
-func NewConsoleLogger() PX {
-	return PX{
-		mu:       &sync.Mutex{},
-		console:  os.Stdout,
-		jsonFile: ConsoleWriter{},
-		payload:  "payload",
-		jobid:    "jobid",
-		level:    LevelInfo,
-		cached:   make(map[string]any),
-		mappings: []Field{},
+func NewConsoleLogger() (PX, error) {
+	px, err := setup("jobid", "payload")
+	if err != nil {
+		return px, err
 	}
+	px.jsonFile = ConsoleWriter{}
+	return px, nil
 }

@@ -12,12 +12,13 @@ import (
 )
 
 func main() {
-	var plan string
-	var noexec bool
-	var dev bool
+	// var plan string
+	// var noexec bool
+	// var dev bool
 	var version bool
 	var exitCode int
 	var panicFlag bool
+	var cmdLine app.CommandLine
 
 	defer failure.HandlePanic(build.Commit(), build.Built().Format(time.RFC3339))
 
@@ -26,9 +27,9 @@ func main() {
 		fmt.Println(err.Error())
 		exit(1)
 	}
-	flag.StringVar(&plan, "plan", "", "plan to run")
-	flag.BoolVar(&noexec, "noexec", false, "do not execute the DBCC (display only)")
-	flag.BoolVar(&dev, "dev", false, "enable DEV settings")
+	flag.StringVar(&cmdLine.Plan, "plan", "", "plan to run")
+	flag.BoolVar(&cmdLine.NoExec, "noexec", false, "do not execute the DBCC (display only)")
+	flag.BoolVar(&cmdLine.Dev, "dev", false, "enable DEV settings")
 	flag.BoolVar(&version, "version", false, "print the version and exit")
 	flag.IntVar(&exitCode, "exit", 0, "if not zero, exit immediately with this code")
 	flag.BoolVar(&panicFlag, "panic", false, "panic and exit")
@@ -47,11 +48,11 @@ func main() {
 		fmt.Printf("%s: %s (%s) built %s\n", exename, build.Version(), build.Commit(), build.Built())
 		return
 	}
-	if plan == "" {
+	if cmdLine.Plan == "" {
 		fmt.Println("FATAL: --plan is required")
 		exit(1)
 	}
-	exitCode = app.Run(dev, plan, noexec)
+	exitCode = app.Run(cmdLine)
 	exit(exitCode)
 }
 

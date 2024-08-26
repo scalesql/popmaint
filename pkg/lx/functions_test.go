@@ -128,7 +128,7 @@ func TestApplyFuncs(t *testing.T) {
 	//now := time.Now()
 	px, err := setup("xxxx_jobid", "payload")
 	require.NoError(err)
-	px.mappings = []Field{
+	px.mappings = []KV{
 		{"ab", 37},
 		{"x.y", "new"},
 		{"ghn", "hostname()"},

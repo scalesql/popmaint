@@ -2,7 +2,7 @@ package lx
 
 import "fmt"
 
-type Field struct {
+type KV struct {
 	K string
 	V any
 }
@@ -36,11 +36,13 @@ func args2map(args ...any) map[string]any {
 	return m
 }
 
-func map2args(m map[string]any) []any {
-	arr := make([]any, 0)
-	for k, v := range m {
-		arr = append(arr, k)
-		arr = append(arr, v)
-	}
-	return arr
-}
+// not needed since we don't go back
+// but will keep for now
+// func map2args(m map[string]any) []any {
+// 	arr := make([]any, 0)
+// 	for k, v := range m {
+// 		arr = append(arr, k)
+// 		arr = append(arr, v)
+// 	}
+// 	return arr
+// }
