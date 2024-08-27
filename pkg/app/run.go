@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/scalesql/popmaint/pkg/config"
 	"github.com/scalesql/popmaint/pkg/lx"
 	"github.com/scalesql/popmaint/pkg/state"
+	"golang.org/x/term"
 )
 
 var ErrRunError = errors.New("error running plan")
@@ -29,9 +31,14 @@ func Run(cmdLine CommandLine) int {
 	exenameBase := filepath.Base(exename)
 	ctx := context.Background()
 
-	err = lx.CleanUpLogs(30, "json", "*.ndjson")
+	usr, err := user.Current()
 	if err != nil {
-		fmt.Println("ERROR cleanuplogs: ", err.Error())
+		fmt.Println("ERROR", fmt.Errorf("os.user: %w", err).Error())
+		return 1
+	}
+	hn, err := os.Hostname()
+	if err != nil {
+		fmt.Println("ERROR", fmt.Errorf("os.hostname: %w", err).Error())
 		return 1
 	}
 
@@ -52,7 +59,12 @@ func Run(cmdLine CommandLine) int {
 	logger.SetCached("commit()", build.Commit())
 	logger.SetCached("version()", build.Version())
 	logger.SetCached("built()", build.Built().Format(time.RFC3339))
+	logger.SetCached("user()", usr.Username)
+
 	logger.AddFields("job_id", jobid)
+	if cmdLine.Dev {
+		logger.AddFields("app.exec.dev", true)
+	}
 
 	appconfig, err := config.ReadConfig()
 	if err != nil {
@@ -68,8 +80,13 @@ func Run(cmdLine CommandLine) int {
 		"app.version", build.Version(),
 		"app.commit", build.Commit(),
 		"app.built", build.Built().Format(time.RFC3339),
-		"app.name", exenameBase,
-		"settings.no_exec", cmdLine.NoExec,
+		"app.exec.path", exename,
+		"app.exec.name", exenameBase,
+		"app.exec.no_exec", cmdLine.NoExec,
+		"app.exec.user", usr.Username,
+		"app.exec.pid", os.Getpid(),
+		"app.exec.host", hn,
+		"app.exec.is_terminal", term.IsTerminal(int(os.Stdout.Fd())),
 	)
 	logger.Info(fmt.Sprintf("%s: %s (%s) built %s", strings.ToUpper(exenameBase), build.Version(), build.Commit(), build.Built()))
 	msg := strings.ToUpper(exenameBase)
@@ -79,7 +96,13 @@ func Run(cmdLine CommandLine) int {
 	if cmdLine.NoExec {
 		msg += fmt.Sprintf("  cmdLine.NoExec: %t", cmdLine.NoExec)
 	}
-	logger.Info(msg, "log_retention_days", appconfig.LogRetentionDays)
+	logger.Info(msg, "log_retention_days", appconfig.Logging.LogRetentionDays)
+
+	err = lx.CleanUpLogs(appconfig.Logging.LogRetentionDays, "json", "*.ndjson")
+	if err != nil {
+		logger.Error(fmt.Errorf("lx.cleanuplogs: %w", err).Error())
+		return 1
+	}
 
 	plan, err := config.ReadPlan(cmdLine.Plan)
 	if err != nil {
@@ -92,7 +115,7 @@ func Run(cmdLine CommandLine) int {
 	}
 	logger.Info(fmt.Sprintf("PLAN: %s  servers: %d  cmdLine.NoExec: %t", cmdLine.Plan, len(plan.Servers), cmdLine.NoExec),
 		"servers", len(plan.Servers),
-		"cmdLine.NoExec", cmdLine.NoExec,
+		//"cmdLine.NoExec", cmdLine.NoExec,
 		"maxdop_cores", plan.MaxDopCores,
 		"maxdop_percent", plan.MaxDopPercent)
 	st, err := state.New(cmdLine.Plan)

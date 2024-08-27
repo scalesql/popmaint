@@ -37,7 +37,10 @@ func getLogFile(jobid, ext string) (*os.File, error) {
 
 // CleanUpLogs removes older log files in the specified folder
 func CleanUpLogs(days int, folder, wildcard string) error {
-	cutoff := time.Duration(days*24) * time.Hour
+	if days == 0 {
+		days = 30
+	}
+	cutoff := time.Now().Add(time.Duration(days*-24) * time.Hour)
 	files, err := filepath.Glob(filepath.Join(".", "logs", folder, wildcard))
 	if err != nil {
 		return err
@@ -47,8 +50,7 @@ func CleanUpLogs(days int, folder, wildcard string) error {
 		if err != nil {
 			return err
 		}
-		if diff := time.Since(fi.ModTime()); diff > cutoff {
-			//fmt.Printf("Deleting %s which is %s old\n", name, diff)
+		if fi.ModTime().Before(cutoff) {
 			err = os.Remove(name)
 			if err != nil {
 				return err

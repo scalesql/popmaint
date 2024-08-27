@@ -3,19 +3,20 @@ PopMaint
 
 TODO
 ----
-_ maybe the version can report in 0.15 instead of 0.15.0
-_ state should be per action: `shared-dev.checkdb.state.json`?
-_ add trace level
 _ add command-line and TOML settings for trace, debug, verbose
+
+_ priority: history, stats, local backups, reindex, 
+
 _ have separate errors for app errors and CHECKDB errors
+_ add trace level
+_ state should be per action: `shared-dev.checkdb.state.json`?
 _ email certain kinds of alerts?
 _ license for non-commercial
 _ functions for the severity/level: severity_name(), severity_level()
 _ switch "popmaint" to a global value in the `global` package?
 _ maybe a skip primary setting so we only check the secondaries?
-
+_ maybe the version can report in 0.15 instead of 0.15.0
 * If physical only, then we can't do extended logical checks.  It errors.
-* Skip any server less than 2014 and log a warning?
 
 
 Terminology
