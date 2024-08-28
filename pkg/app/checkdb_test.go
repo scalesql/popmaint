@@ -23,6 +23,11 @@ func TestDatabaseSort(t *testing.T) {
 			DatabaseMB:   300,
 		},
 		{
+			DatabaseName: "One-Plus",
+			LastDBCC:     time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+			DatabaseMB:   200,
+		},
+		{
 			DatabaseName: "Three",
 			LastDBCC:     time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC),
 			DatabaseMB:   100,
@@ -42,7 +47,8 @@ func TestDatabaseSort(t *testing.T) {
 	assert.Equal("Four", dd[0].DatabaseName, "i=0")
 	assert.Equal("Three", dd[1].DatabaseName, "i=1")
 	assert.Equal("Two", dd[3].DatabaseName, "i=3")
-	assert.Equal("One", dd[4].DatabaseName, "i=4")
+	assert.Equal("One-Plus", dd[4].DatabaseName, "i=3")
+	assert.Equal("One", dd[5].DatabaseName, "i=4")
 }
 
 func TestIntervalTooEarly(t *testing.T) {

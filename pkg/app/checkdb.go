@@ -217,16 +217,21 @@ func (engine *Engine) runCheckDB(ctx context.Context, noexec bool) int {
 	return exitCode
 }
 
-// sort by oldest defrag, then largest size
+// sortDatabasesForDBCC sorts by oldest defrag based on 24-hour days,
+// then largest size.
+// This should help if databases change size significantly or servers
+// come and go.
 func sortDatabasesForDBCC(databases []mssqlz.Database) {
 	slices.SortStableFunc(databases, func(a, b mssqlz.Database) int {
 		return coalesce(
-			cmp.Compare(a.LastDBCC.Unix(), b.LastDBCC.Unix()),     // ascending
+			cmp.Compare(b.LastDBCCDays(), a.LastDBCCDays()),       // bigger days is longer ago
 			cmp.Compare(int64(b.DatabaseMB), int64(a.DatabaseMB)), // descending
 		)
 	})
 }
 
+// coalesce returns the first non-zero result...
+// so not really coalesce.
 func coalesce[T comparable](vals ...T) T {
 	var zero T
 	for _, val := range vals {

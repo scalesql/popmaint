@@ -38,6 +38,11 @@ func (db Database) Path() string {
 	return str
 }
 
+// LastDBCCDays returns the number of days (24 hour periods) since the last DBCC was run.
+func (db Database) LastDBCCDays() int {
+	return int(time.Since(db.LastDBCC).Hours() / 24)
+}
+
 // OnlineDatabases returns a list of datbases that are online.  It includes system databases.
 func OnlineDatabases(ctx context.Context, fqdn string) ([]Database, error) {
 	databases := make([]Database, 0)
