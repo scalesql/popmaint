@@ -18,7 +18,10 @@ type Plan struct {
 	Servers       []string `toml:"servers"`
 	MaxDopCores   int      `toml:"maxdop_cores"`
 	MaxDopPercent int      `toml:"maxdop_percent"`
-	CheckDB       struct {
+	Log           struct {
+		Level string `toml:"level"`
+	} `toml:"log"`
+	CheckDB struct {
 		TimeLimit             Duration `toml:"time_limit" json:"-"`
 		NoIndex               bool     `toml:"no_index" json:"no_index"`
 		MaxSizeMB             int      `toml:"max_size_mb" json:"-"`

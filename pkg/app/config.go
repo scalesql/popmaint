@@ -6,8 +6,6 @@ type CommandLine struct {
 	Plan             string
 	NoExec           bool
 	LogRetentionDays int
-	Trace            bool
-	Debug            bool
-	Verbose          bool
+	LogLevel         string
 	Dev              bool
 }

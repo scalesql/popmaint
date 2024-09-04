@@ -12,7 +12,7 @@ type PX struct {
 	mu       *sync.Mutex
 	console  io.Writer
 	jsonFile io.WriteCloser
-	level    Level
+	level    LogLevel
 	jobid    string // yyyymmdd_hhmmss_plan
 	payload  string // field name of the payload
 

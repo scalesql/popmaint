@@ -37,7 +37,7 @@ func (cx CX) WithFields(args ...any) CX {
 }
 
 // Log an event
-func (cx CX) Log(level Level, msg string, args ...any) {
+func (cx CX) Log(level LogLevel, msg string, args ...any) {
 	// start with the default fields
 	final := maps.Clone(cx.fields)
 	// copy the fields we just got
@@ -47,7 +47,7 @@ func (cx CX) Log(level Level, msg string, args ...any) {
 }
 
 // Console writes to the console
-func (cx CX) Console(level Level, msg string) {
+func (cx CX) Console(level LogLevel, msg string) {
 	cx.px.Console(level, msg)
 }
 

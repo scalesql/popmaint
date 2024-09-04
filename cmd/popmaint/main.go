@@ -12,9 +12,6 @@ import (
 )
 
 func main() {
-	// var plan string
-	// var noexec bool
-	// var dev bool
 	var version bool
 	var exitCode int
 	var panicFlag bool
@@ -33,6 +30,7 @@ func main() {
 	flag.BoolVar(&version, "version", false, "print the version and exit")
 	flag.IntVar(&exitCode, "exit", 0, "if not zero, exit immediately with this code")
 	flag.BoolVar(&panicFlag, "panic", false, "panic and exit")
+	flag.StringVar(&cmdLine.LogLevel, "log-level", "", "log level (trace, debug, verbose, info, warn, error)")
 
 	flag.Parse()
 	if exitCode != 0 {

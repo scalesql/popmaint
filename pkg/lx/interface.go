@@ -9,7 +9,7 @@ type Logger interface {
 	Info(msg string, args ...any)
 	Warn(msg string, args ...any)
 	Error(msg string, args ...any)
-	Log(level Level, msg string, args ...any)
-	Console(level Level, msg string)
+	Log(level LogLevel, msg string, args ...any)
+	Console(level LogLevel, msg string)
 	WithFields(args ...any) CX
 }

@@ -8,16 +8,17 @@ import (
 )
 
 type AppConfig struct {
-	Logging struct {
-		LogRetentionDays int            `toml:"log_retention_days"`
+	Log struct {
+		Level            string         `toml:"level"`
+		LogRetentionDays int            `toml:"retention_days"`
 		Fields           map[string]any `toml:"fields"`
-	} `toml:"logging"`
+	} `toml:"log"`
 }
 
 func ReadConfig() (AppConfig, error) {
 	if _, err := os.Stat("popmaint.toml"); errors.Is(err, os.ErrNotExist) {
 		appconfig := AppConfig{}
-		appconfig.Logging.LogRetentionDays = 30
+		appconfig.Log.LogRetentionDays = 30
 		return appconfig, nil
 	}
 	bb, err := os.ReadFile("popmaint.toml")

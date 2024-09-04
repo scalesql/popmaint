@@ -53,6 +53,7 @@ func Run(cmdLine CommandLine) int {
 			fmt.Println("ERROR", err.Error())
 		}
 	}(logger)
+
 	logger.SetFormatJSON(cmdLine.Dev)
 
 	logger.SetCached("exename()", exenameBase)
@@ -66,12 +67,13 @@ func Run(cmdLine CommandLine) int {
 		logger.AddFields("app.exec.dev", true)
 	}
 
+	// Read the app.toml config file
 	appconfig, err := config.ReadConfig()
 	if err != nil {
 		logger.Error(fmt.Errorf("config.readconfig: %w", err).Error())
 		return 1
 	}
-	err = logger.SetMappings(appconfig.Logging.Fields)
+	err = logger.SetMappings(appconfig.Log.Fields)
 	if err != nil {
 		logger.Error(fmt.Errorf("logger.setmappings: %w", err).Error())
 		return 1
@@ -88,27 +90,62 @@ func Run(cmdLine CommandLine) int {
 		"app.exec.host", hn,
 		"app.exec.is_terminal", term.IsTerminal(int(os.Stdout.Fd())),
 	)
-	logger.Info(fmt.Sprintf("%s: %s (%s) built %s", strings.ToUpper(exenameBase), build.Version(), build.Commit(), build.Built()))
-	msg := strings.ToUpper(exenameBase)
+	logger.Info(fmt.Sprintf("%s %s (%s) built %s", strings.ToUpper(exenameBase), build.Version(), build.Commit(), build.Built()))
+	msg := fmt.Sprintf("%s on %s as %s", strings.ToUpper(exenameBase), hn, usr.Username)
 	if cmdLine.Dev {
 		msg += fmt.Sprintf("  cmdLine.Dev: %t", cmdLine.Dev)
 	}
 	if cmdLine.NoExec {
 		msg += fmt.Sprintf("  cmdLine.NoExec: %t", cmdLine.NoExec)
 	}
-	logger.Info(msg, "log_retention_days", appconfig.Logging.LogRetentionDays)
+	logger.Info(msg, "log_retention_days", appconfig.Log.LogRetentionDays)
 
-	err = lx.CleanUpLogs(appconfig.Logging.LogRetentionDays, "json", "*.ndjson")
+	err = lx.CleanUpLogs(appconfig.Log.LogRetentionDays, "json", "*.ndjson")
 	if err != nil {
 		logger.Error(fmt.Errorf("lx.cleanuplogs: %w", err).Error())
 		return 1
 	}
 
+	// Read the plan.toml file
 	plan, err := config.ReadPlan(cmdLine.Plan)
 	if err != nil {
 		logger.Error(fmt.Errorf("config.readplan: %w", err).Error())
 		return 1
 	}
+
+	// Set the logging level
+	// command-line overrides plan.toml overrides app.toml
+	logSource := ""
+	if appconfig.Log.Level != "" {
+		err := logger.SetLevelString(appconfig.Log.Level)
+		if err != nil {
+			logger.Error(fmt.Errorf("popmaint.toml: %w", err).Error())
+			return 1
+		}
+		logSource = "popmaint.toml"
+	}
+
+	if plan.Log.Level != "" {
+		err := logger.SetLevelString(plan.Log.Level)
+		if err != nil {
+			logger.Error(fmt.Errorf("%s.toml: %w", cmdLine.Plan, err).Error())
+			return 1
+		}
+		logSource = fmt.Sprintf("%s.toml", cmdLine.Plan)
+	}
+
+	if cmdLine.LogLevel != "" {
+		err := logger.SetLevelString(cmdLine.LogLevel)
+		if err != nil {
+			logger.Error(fmt.Errorf("-log-level: %w", err).Error())
+			return 1
+		}
+		logSource = "command-line -log-level"
+	}
+	if logger.Level() != lx.LevelInfo {
+		logger.Info(fmt.Sprintf("logging at %s from %s", logger.Level(), logSource))
+	}
+
 	dupes := plan.RemoveDupes()
 	for _, str := range dupes {
 		logger.Warn(fmt.Sprintf("%s: duplicate server: %s", cmdLine.Plan, str))

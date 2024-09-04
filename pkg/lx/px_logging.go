@@ -11,20 +11,6 @@ import (
 	"golang.org/x/term"
 )
 
-type Level int
-
-const (
-	LevelDebug = iota
-	LevelVerbose
-	LevelInfo
-	LevelWarn
-	LevelError
-)
-
-func (d Level) String() string {
-	return [...]string{"DEBUG", "INFO", "INFO", "WARN", "ERROR"}[d]
-}
-
 func (px PX) Debug(msg string, args ...any) {
 	px.Log(LevelDebug, msg, args...)
 }
@@ -42,7 +28,7 @@ func (px PX) Error(msg string, args ...any) {
 }
 
 // Log an event.  Args are passed as "k", value pairs in an array
-func (px PX) Log(level Level, msg string, args ...any) {
+func (px PX) Log(level LogLevel, msg string, args ...any) {
 	px.mu.Lock()
 	defer px.mu.Unlock()
 	argmap := anys2map("", args...)
@@ -51,13 +37,13 @@ func (px PX) Log(level Level, msg string, args ...any) {
 
 // Log an event.  Args are passed as map["a.b.c"]any.
 // Child loggers build a map and use this.
-func (px PX) LogMap(level Level, msg string, m map[string]any) {
+func (px PX) LogMap(level LogLevel, msg string, m map[string]any) {
 	px.mu.Lock()
 	defer px.mu.Unlock()
 	px.log(level, msg, m)
 }
 
-func (px PX) log(level Level, msg string, fields map[string]any) {
+func (px PX) log(level LogLevel, msg string, fields map[string]any) {
 	now := time.Now()
 	px.logConsole(now, level, msg)
 
@@ -103,13 +89,13 @@ func (px PX) log(level Level, msg string, fields map[string]any) {
 }
 
 // Console just writes to the console
-func (px PX) Console(level Level, msg string) {
+func (px PX) Console(level LogLevel, msg string) {
 	px.mu.Lock()
 	defer px.mu.Unlock()
 	px.logConsole(time.Now(), level, msg)
 }
 
-func (px *PX) logConsole(now time.Time, level Level, msg string) {
+func (px *PX) logConsole(now time.Time, level LogLevel, msg string) {
 	if level < px.level {
 		return
 	}
@@ -135,7 +121,7 @@ func (px *PX) logConsole(now time.Time, level Level, msg string) {
 	px.console.Write([]byte(line))
 }
 
-func (px *PX) logJSON(level Level, m map[string]any) error {
+func (px *PX) logJSON(level LogLevel, m map[string]any) error {
 	if level < px.level {
 		return nil
 	}
