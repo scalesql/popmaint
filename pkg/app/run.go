@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 	"time"
@@ -31,10 +30,9 @@ func Run(cmdLine CommandLine) int {
 	exenameBase := filepath.Base(exename)
 	ctx := context.Background()
 
-	usr, err := user.Current()
+	userName, err := currentUserName()
 	if err != nil {
-		fmt.Println("ERROR", fmt.Errorf("os.user: %w", err).Error())
-		return 1
+		fmt.Println("ERROR", fmt.Errorf("currentUserName: %w", err).Error())
 	}
 	hn, err := os.Hostname()
 	if err != nil {
@@ -60,7 +58,7 @@ func Run(cmdLine CommandLine) int {
 	logger.SetCached("commit()", build.Commit())
 	logger.SetCached("version()", build.Version())
 	logger.SetCached("built()", build.Built().Format(time.RFC3339))
-	logger.SetCached("user()", usr.Username)
+	logger.SetCached("user()", userName)
 
 	logger.AddFields("job_id", jobid)
 	if cmdLine.Dev {
@@ -85,13 +83,13 @@ func Run(cmdLine CommandLine) int {
 		"app.exec.path", exename,
 		"app.exec.name", exenameBase,
 		"app.exec.no_exec", cmdLine.NoExec,
-		"app.exec.user", usr.Username,
+		"app.exec.user", userName,
 		"app.exec.pid", os.Getpid(),
 		"app.exec.host", hn,
 		"app.exec.is_terminal", term.IsTerminal(int(os.Stdout.Fd())),
 	)
 	logger.Info(fmt.Sprintf("%s %s (%s) built %s", strings.ToUpper(exenameBase), build.Version(), build.Commit(), build.Built()))
-	msg := fmt.Sprintf("%s on %s as %s", strings.ToUpper(exenameBase), hn, usr.Username)
+	msg := fmt.Sprintf("%s on %s as %s", strings.ToUpper(exenameBase), hn, userName)
 	if cmdLine.Dev {
 		msg += fmt.Sprintf("  cmdLine.Dev: %t", cmdLine.Dev)
 	}

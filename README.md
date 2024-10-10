@@ -3,7 +3,10 @@ PopMaint
 
 TODO
 ----
+_ `-info` flag that prints the version, host, user, pid, etc.
+_ use the functional source license or the PolyForm internal use license 
 _ add command-line and TOML settings for trace, debug, verbose
+_ check for required permissions
 
 _ priority: history, stats, local backups, reindex, 
 
@@ -17,7 +20,7 @@ _ switch "popmaint" to a global value in the `global` package?
 _ maybe a skip primary setting so we only check the secondaries?
 _ maybe the version can report in 0.15 instead of 0.15.0
 * If physical only, then we can't do extended logical checks.  It errors.
-
+_ mail purge - `sysmail_delete_mailitems_sp` and `sysmail_delete_log_sp`
 
 Terminology
 -----------
