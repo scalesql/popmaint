@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/scalesql/popmaint/pkg/lx"
+	"github.com/scalesql/popmaint/internal/lx"
 )
 
 func main() {

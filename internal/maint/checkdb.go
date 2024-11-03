@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scalesql/popmaint/pkg/config"
-	"github.com/scalesql/popmaint/pkg/lockmon"
-	"github.com/scalesql/popmaint/pkg/mssqlz"
+	"github.com/scalesql/popmaint/internal/config"
+	"github.com/scalesql/popmaint/internal/lockmon"
+	"github.com/scalesql/popmaint/internal/mssqlz"
 
 	"github.com/billgraziano/mssqlh"
 )

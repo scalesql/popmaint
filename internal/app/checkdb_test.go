@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scalesql/popmaint/pkg/mssqlz"
+	"github.com/scalesql/popmaint/internal/mssqlz"
 
 	"github.com/stretchr/testify/assert"
 )

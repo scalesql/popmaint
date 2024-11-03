@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scalesql/popmaint/pkg/config"
-	"github.com/scalesql/popmaint/pkg/lx"
-	"github.com/scalesql/popmaint/pkg/maint"
-	"github.com/scalesql/popmaint/pkg/mssqlz"
-	"github.com/scalesql/popmaint/pkg/state"
+	"github.com/scalesql/popmaint/internal/config"
+	"github.com/scalesql/popmaint/internal/lx"
+	"github.com/scalesql/popmaint/internal/maint"
+	"github.com/scalesql/popmaint/internal/mssqlz"
+	"github.com/scalesql/popmaint/internal/state"
 
 	"github.com/pkg/errors"
 )

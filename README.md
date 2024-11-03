@@ -1,79 +1,72 @@
-PopMaint
+POPMAINT
 ========
+POPMAINT is a SQL Server maintenance solution similar to SQL Server Maintenance Plans.  It is based on GIT-friendly configuration files.
 
-TODO
-----
-_ `-info` flag that prints the version, host, user, pid, etc.
-_ use the functional source license or the PolyForm internal use license 
-_ add command-line and TOML settings for trace, debug, verbose
-_ check for required permissions
 
-_ priority: history, stats, local backups, reindex, 
+Command-line Flags
+-----
+* `-plan plan_name` - Name of the plan to run. Do not include the `toml` extension.
+* `-noexec` 
+* `-version`
+* `-exit #` - Run and exit with this code.  If an error is encountered, the app exits with a non-zero code.  This is for testing how your scheduler responds to this.
+* `-log-level level` - "trace", "debug", "verbose", "info", "warn", or "error"
 
-_ have separate errors for app errors and CHECKDB errors
-_ add trace level
-_ state should be per action: `shared-dev.checkdb.state.json`?
-_ email certain kinds of alerts?
-_ license for non-commercial
-_ functions for the severity/level: severity_name(), severity_level()
-_ switch "popmaint" to a global value in the `global` package?
-_ maybe a skip primary setting so we only check the secondaries?
-_ maybe the version can report in 0.15 instead of 0.15.0
-* If physical only, then we can't do extended logical checks.  It errors.
-_ mail purge - `sysmail_delete_mailitems_sp` and `sysmail_delete_log_sp`
 
-Terminology
------------
-* Action - checkdb, defrag, backup, stats, cleanUp, history
+Plan Files (TOML)
+-----------------
+Plan files should be stored in the `plans` folder and have a `toml` extension.
 
-File Structure
---------------
-```
-logs/
-├─ json/
-└─ text/
-   └─ 240712_130214_plan1.log
-plans/
-└─ plan1.toml
-state/
-└─ plan1.state.json
-popmaint.exe
-popmaint.toml
-```
-
-Fun Stuff
----------
-* Write sql.Rows to a log file
-
-Next Test #1
-------------
-* Monitor for blocking or blocked by and abort (EXECMON)
-* Use `/pkg/execmon` to defrag
-
----------
 ```toml
-servers = ["ab", "c"]
-time_limit = "4h"
-min_repeat_days = 7 # wait at least this long to defrag
+servers = [
+    "SERVER1\\SQL2022x",
+    ]
+
+maxdop_cores = 2
+maxdop_percent = 50
+
+[log]
+# level = "debug"
 
 [checkdb]
-time_limit = "2h"
-no_index = true
-messages = true
-max_size_mb = 100
+time_limit = "60m"
+included = ["master", "msdb", "corrupt_db"]
+excluded = ["tempdb", "msdb"]
+min_interval_days = 0
 
-[defrag]
-[backup]
-[server.abc]
-checkdb.exclude = ["a", "b", "c"]
+no_index = true 
+info_messages = false 
+physical_only = true 
+estimate_only = false   
+extended_logical_checks = false 
+data_purity = false 
 ```
 
-TOML App File - `popmaint.toml`
--------------------------------
-[logging]
-retain_days = 30
+Application Configuration (TOML)
+--------------------------------
+```toml
+[log]
+retention_days = 1
 
-[logging.text]
-[logging.json]
-[logging.console]
+[log.fields]
+global.log.host = "hostname()"
+global.log.user = "user()"
+```
 
+Goals
+-----
+* Replace SQL Server Maintenance Plans
+* Configuration via GIT-friendly files
+* JSON logging designed for Elastic Search
+* Spread load across servers and time zones
+
+Roadmap - Short Term
+--------------------
+* Store `state` and logs in a database
+* Configure SQL Server credentials from environment variables
+
+Roadmap - Long Term
+-------------------
+* History cleanup
+* Statistics
+* Backup
+* Reindex

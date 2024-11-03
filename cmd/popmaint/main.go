@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/scalesql/popmaint/internal/app"
+	"github.com/scalesql/popmaint/internal/build"
 	"github.com/scalesql/popmaint/internal/failure"
-	"github.com/scalesql/popmaint/pkg/app"
-	"github.com/scalesql/popmaint/pkg/build"
 )
 
 func main() {

@@ -9,7 +9,7 @@ package lockmon
 // 	"time"
 
 // 	"github.com/jmoiron/sqlx"
-// 	"github.com/pkg/errors"
+// 	"github.com/internal/errors"
 // )
 
 // const maxDepth = 100 // max recursion depth to find blocking

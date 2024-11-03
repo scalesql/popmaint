@@ -8,8 +8,8 @@ import (
 
 	"github.com/golang-sql/sqlexp"
 	"github.com/pkg/errors"
+	"github.com/scalesql/popmaint/internal/build"
 	"github.com/scalesql/popmaint/internal/failure"
-	"github.com/scalesql/popmaint/pkg/build"
 )
 
 // TODO montior for blocking OR being blocked

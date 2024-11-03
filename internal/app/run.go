@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/scalesql/popmaint/internal/build"
+	"github.com/scalesql/popmaint/internal/config"
 	"github.com/scalesql/popmaint/internal/failure"
-	"github.com/scalesql/popmaint/pkg/build"
-	"github.com/scalesql/popmaint/pkg/config"
-	"github.com/scalesql/popmaint/pkg/lx"
-	"github.com/scalesql/popmaint/pkg/state"
+	"github.com/scalesql/popmaint/internal/lx"
+	"github.com/scalesql/popmaint/internal/state"
 	"golang.org/x/term"
 )
 

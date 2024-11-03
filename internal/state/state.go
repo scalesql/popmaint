@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/scalesql/popmaint/pkg/mssqlz"
+	"github.com/scalesql/popmaint/internal/mssqlz"
 )
 
 var ErrClosed = errors.New("state is closed")
