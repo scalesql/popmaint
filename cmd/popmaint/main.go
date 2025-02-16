@@ -15,6 +15,7 @@ func main() {
 	var version bool
 	var exitCode int
 	var panicFlag bool
+	var printEnv bool
 	var cmdLine app.CommandLine
 
 	defer failure.HandlePanic(build.Commit(), build.Built().Format(time.RFC3339))
@@ -31,6 +32,7 @@ func main() {
 	flag.IntVar(&exitCode, "exit", 0, "if not zero, exit immediately with this code")
 	flag.BoolVar(&panicFlag, "panic", false, "panic and exit")
 	flag.StringVar(&cmdLine.LogLevel, "log-level", "", "log level (trace, debug, verbose, info, warn, error)")
+	flag.BoolVar(&printEnv, "env", false, "print related environment variables")
 
 	flag.Parse()
 	if exitCode != 0 {
@@ -46,11 +48,17 @@ func main() {
 		fmt.Printf("%s: %s (%s) built %s\n", exename, build.Version(), build.Commit(), build.Built())
 		return
 	}
+	if printEnv {
+		printenv()
+		return
+	}
+
 	if cmdLine.Plan == "" {
 		fmt.Println("FATAL: --plan is required")
 		exit(1)
 	}
-	exitCode = app.Run(cmdLine)
+
+	exitCode = app.Run(cmdLine, os.Getenv)
 	exit(exitCode)
 }
 
@@ -68,4 +76,11 @@ func exit(code int) {
 
 	fmt.Printf("%s EXIT: %d\n", time.Now().Format("15:04:05"), code)
 	os.Exit(code)
+}
+
+func printenv() {
+	vars := os.Environ()
+	for _, v := range vars {
+		fmt.Println(v)
+	}
 }

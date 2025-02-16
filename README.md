@@ -1,6 +1,6 @@
 POPMAINT
 ========
-POPMAINT is a SQL Server maintenance solution similar to SQL Server Maintenance Plans.  It is based on GIT-friendly configuration files.
+POPMAINT is a command-line SQL Server maintenance solution similar to SQL Server Maintenance Plans.  It is based on GIT-friendly configuration files.  **This is currently under active development and everything is subject to change.**
 
 
 Command-line Flags
@@ -8,7 +8,7 @@ Command-line Flags
 * `-plan plan_name` - Name of the plan to run. Do not include the `toml` extension.
 * `-noexec` 
 * `-version`
-* `-exit #` - Run and exit with this code.  If an error is encountered, the app exits with a non-zero code.  This is for testing how your scheduler responds to this.
+* `-exit #` - Run and exit with this code.  If an error is encountered, the app exits with a non-zero code.  This is for testing how your job scheduler responds to this.
 * `-log-level level` - "trace", "debug", "verbose", "info", "warn", or "error"
 
 
@@ -46,11 +46,33 @@ Application Configuration (TOML)
 ```toml
 [log]
 retention_days = 1
+level = "debug" #info, error, etc.
 
 [log.fields]
 global.log.host = "hostname()"
 global.log.user = "user()"
+
+[repository]
+server = "server1"
+database = "PopMaint"
+username = "popmaint"
+password = "${POPMAINT_PASSWORD}"
 ```
+
+For the `username` and `password`, environment variables can be substituted with `${environment_variable_name}` in the field value.
+
+
+Security
+--------
+* Required permissions
+* Setting password repository
+    * Trusted
+    * Environment variables 
+        * POPMAINT_USER, POPMAINT_PASS
+        * POPMAINT_REPO_USER, POPMAINT_REPO_PASS
+* Server Connections
+    * Trusted
+    * Environment variables (POPMAINT_USER, POPMAINT_PASS)
 
 Goals
 -----

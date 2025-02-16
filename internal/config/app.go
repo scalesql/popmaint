@@ -13,9 +13,17 @@ type AppConfig struct {
 		LogRetentionDays int            `toml:"retention_days"`
 		Fields           map[string]any `toml:"fields"`
 	} `toml:"log"`
+	Repository struct {
+		Server   string `toml:"server"`
+		Database string `toml:"database"`
+		UserName string `toml:"username"`
+		Password string `toml:"password"`
+	} `toml:"repository"`
 }
 
-func ReadConfig() (AppConfig, error) {
+// ReadConfig reads popmaint.toml and returns an AppConfig structure.  It also
+// accepts a mapper function to replace environment variables in certain fields.
+func ReadConfig(getenv func(string) string) (AppConfig, error) {
 	if _, err := os.Stat("popmaint.toml"); errors.Is(err, os.ErrNotExist) {
 		appconfig := AppConfig{}
 		appconfig.Log.LogRetentionDays = 30
@@ -30,5 +38,7 @@ func ReadConfig() (AppConfig, error) {
 	if err != nil {
 		return AppConfig{}, err
 	}
+	appconfig.Repository.UserName = os.Expand(appconfig.Repository.UserName, getenv)
+	appconfig.Repository.Password = os.Expand(appconfig.Repository.Password, getenv)
 	return appconfig, nil
 }

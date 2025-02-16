@@ -19,7 +19,7 @@ import (
 
 var ErrRunError = errors.New("error running plan")
 
-func Run(cmdLine CommandLine) int {
+func Run(cmdLine CommandLine, getenv func(string) string) int {
 	defer failure.HandlePanic(build.Commit(), build.Built().Format(time.RFC3339))
 	jobid := fmt.Sprintf("%s_%s", time.Now().Format("20060102_150405"), cmdLine.Plan)
 	exename, err := os.Executable()
@@ -66,7 +66,7 @@ func Run(cmdLine CommandLine) int {
 	}
 
 	// Read the app.toml config file
-	appconfig, err := config.ReadConfig()
+	appconfig, err := config.ReadConfig(getenv)
 	if err != nil {
 		logger.Error(fmt.Errorf("config.readconfig: %w", err).Error())
 		return 1
@@ -153,12 +153,29 @@ func Run(cmdLine CommandLine) int {
 		//"cmdLine.NoExec", cmdLine.NoExec,
 		"maxdop_cores", plan.MaxDopCores,
 		"maxdop_percent", plan.MaxDopPercent)
-	st, err := state.New(cmdLine.Plan)
-	if err != nil {
-		logger.Error(fmt.Errorf("state.new: %w", err).Error())
-		return 1
+
+	// Set the proper state provider
+	var st state.Stater
+	if appconfig.Repository.Server == "" {
+		st, err = state.NewFileState(cmdLine.Plan)
+		if err != nil {
+			logger.Error(fmt.Errorf("state.new: %w", err).Error())
+			return 1
+		}
+		logger.Info("State: file-based")
+	} else {
+		st, err = state.NewDBState(
+			appconfig.Repository.Server,
+			appconfig.Repository.Database,
+			appconfig.Repository.UserName,
+			appconfig.Repository.Password)
+		if err != nil {
+			logger.Error(fmt.Errorf("state.new: %w", err).Error())
+			return 1
+		}
+		logger.Info(fmt.Sprintf("State: server: %s  database: %s", appconfig.Repository.Server, appconfig.Repository.Database))
 	}
-	defer func(st *state.State) {
+	defer func(st state.Stater) {
 		if err := st.Close(); err != nil {
 			logger.Error(fmt.Errorf("state.close: %w", err).Error())
 		}

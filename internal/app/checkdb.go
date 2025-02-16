@@ -19,13 +19,13 @@ import (
 
 type Engine struct {
 	logger lx.Logger
-	st     *state.State
+	st     state.Stater
 	start  time.Time
 	JobID  string
 	Plan   config.Plan
 }
 
-func NewEngine(logger lx.Logger, plan config.Plan, st *state.State) Engine {
+func NewEngine(logger lx.Logger, plan config.Plan, st state.Stater) Engine {
 	engine := Engine{
 		logger: logger,
 		st:     st,
@@ -99,7 +99,11 @@ func (engine *Engine) runCheckDB(ctx context.Context, noexec bool) int {
 
 	// sort the databases, filter, and get state
 	for i, db := range databases {
-		tm, ok := engine.st.GetLastCheckDBDate(db)
+		tm, ok, err := engine.st.GetLastCheckDBDate(db)
+		if err != nil {
+			child.Error(err.Error())
+			return 1
+		}
 		if ok {
 			databases[i].LastDBCC = tm
 		}

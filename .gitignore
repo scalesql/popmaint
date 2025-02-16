@@ -32,6 +32,8 @@ go.work.sum
 *.toml
 *.cmd
 *.ps1
+popmaint_panic_*.txt
+
 
 
 

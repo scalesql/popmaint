@@ -15,12 +15,12 @@ import (
 
 var ErrClosed = errors.New("state is closed")
 
-// State captures the state so that we don't need to recreate it.
+// FileState captures the state so that we don't need to recreate it.
 // It currently only supports the last CheckDB date.
 // Defrag will likely just be a map of pending work.
 // Update stats may keep a last date.  But we also have that in
 // the database.
-type State struct {
+type FileState struct {
 	mu       *sync.RWMutex
 	closed   bool
 	fileName string
@@ -30,8 +30,8 @@ type State struct {
 	} `json:"checkdb"`
 }
 
-func New(plan string) (*State, error) {
-	st := State{
+func NewFileState(plan string) (*FileState, error) {
+	st := FileState{
 		mu:       &sync.RWMutex{},
 		fileName: filepath.Join(".", "state", fmt.Sprintf("%s.state.json", strings.ToLower(plan))),
 		Plan:     plan,
@@ -53,13 +53,7 @@ func New(plan string) (*State, error) {
 	return &st, nil
 }
 
-func (st *State) Flush() error {
-	st.mu.Lock()
-	defer st.mu.Unlock()
-	return st.write()
-}
-
-func (st *State) Close() error {
+func (st *FileState) Close() error {
 	st.mu.Lock()
 	defer st.mu.Unlock()
 	err := st.write()
@@ -67,7 +61,7 @@ func (st *State) Close() error {
 	return err
 }
 
-func (st *State) SetLastCheckDB(db mssqlz.Database) error {
+func (st *FileState) SetLastCheckDB(db mssqlz.Database) error {
 	st.mu.Lock()
 	defer st.mu.Unlock()
 	k := db.Path()
@@ -75,16 +69,16 @@ func (st *State) SetLastCheckDB(db mssqlz.Database) error {
 	return st.write() // these are big operations so we will write with each completion
 }
 
-func (st *State) GetLastCheckDBDate(db mssqlz.Database) (time.Time, bool) {
+func (st *FileState) GetLastCheckDBDate(db mssqlz.Database) (time.Time, bool, error) {
 	st.mu.RLock()
 	defer st.mu.RUnlock()
 	k := db.Path()
-	// If we don't find it, just return
+	// If we don't find it, just return with zero time
 	tm, ok := st.CheckDB.M[k]
-	return tm, ok
+	return tm, ok, nil
 }
 
-func (st *State) write() error {
+func (st *FileState) write() error {
 	if st.closed {
 		return ErrClosed
 	}
@@ -95,7 +89,7 @@ func (st *State) write() error {
 	return os.WriteFile(st.fileName, bb, os.ModePerm)
 }
 
-func (st *State) read() error {
+func (st *FileState) read() error {
 	if st.closed {
 		return ErrClosed
 	}
