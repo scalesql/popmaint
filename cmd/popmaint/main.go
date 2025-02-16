@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/user"
 	"time"
 
 	"github.com/scalesql/popmaint/internal/app"
@@ -45,7 +46,8 @@ func main() {
 		panic("panic: handling -panic flag")
 	}
 	if version {
-		fmt.Printf("%s: %s (%s) built %s\n", exename, build.Version(), build.Commit(), build.Built())
+		fmt.Printf("EXE:  %s: %s (%s) built %s\n", exename, build.Version(), build.Commit(), build.Built())
+		printextraversion()
 		return
 	}
 	if printEnv {
@@ -82,5 +84,22 @@ func printenv() {
 	vars := os.Environ()
 	for _, v := range vars {
 		fmt.Println(v)
+	}
+}
+
+// print the hostname and username
+func printextraversion() {
+	hn, err := os.Hostname()
+	if err != nil {
+		fmt.Println("ERROR (HOST):", err.Error())
+	} else {
+		fmt.Println("HOST:", hn)
+	}
+
+	u, err := user.Current()
+	if err != nil {
+		fmt.Println("ERROR (USER):", err.Error())
+	} else {
+		fmt.Printf("USER: %s (%s)\n", u.Username, u.Name)
 	}
 }
