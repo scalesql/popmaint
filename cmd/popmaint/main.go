@@ -18,6 +18,7 @@ func main() {
 	var panicFlag bool
 	var printEnv bool
 	var cmdLine app.CommandLine
+	var help bool
 
 	defer failure.HandlePanic(build.Commit(), build.Built().Format(time.RFC3339))
 
@@ -26,7 +27,6 @@ func main() {
 		fmt.Println(err.Error())
 		exit(1)
 	}
-	flag.StringVar(&cmdLine.Plan, "plan", "", "plan to run")
 	flag.BoolVar(&cmdLine.NoExec, "noexec", false, "do not execute the DBCC (display only)")
 	flag.BoolVar(&cmdLine.Dev, "dev", false, "enable DEV settings")
 	flag.BoolVar(&version, "version", false, "print the version and exit")
@@ -34,6 +34,8 @@ func main() {
 	flag.BoolVar(&panicFlag, "panic", false, "panic and exit")
 	flag.StringVar(&cmdLine.LogLevel, "log-level", "", "log level (trace, debug, verbose, info, warn, error)")
 	flag.BoolVar(&printEnv, "env", false, "print related environment variables")
+	flag.BoolVar(&help, "help", false, "print this help message")
+	flag.BoolVar(&help, "?", false, "print this help message")
 
 	flag.Parse()
 	if exitCode != 0 {
@@ -41,6 +43,13 @@ func main() {
 		exit(exitCode)
 		return
 	}
+
+	if help {
+		fmt.Println("usage: popmaint.exe [flags] <plan>")
+		flag.PrintDefaults()
+		return
+	}
+
 	if panicFlag {
 		fmt.Println("popmaint.exe: handling -panic flag")
 		panic("panic: handling -panic flag")
@@ -55,10 +64,12 @@ func main() {
 		return
 	}
 
-	if cmdLine.Plan == "" {
-		fmt.Println("FATAL: --plan is required")
+	if len(flag.Args()) == 0 {
+		fmt.Println("usage: popmaint.exe [flags] <plan>")
+		fmt.Println("FATAL: plan is required")
 		exit(1)
 	}
+	cmdLine.Plan = flag.Arg(0)
 
 	exitCode = app.Run(cmdLine, os.Getenv)
 	exit(exitCode)

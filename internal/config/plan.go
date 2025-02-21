@@ -42,7 +42,8 @@ func ReadPlan(name string) (Plan, error) {
 	fileName := fmt.Sprintf("%s.toml", name)
 	fileName = filepath.Join(".", "plans", fileName)
 	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
-		return plan, err
+		//return plan, err
+		return plan, fmt.Errorf("plan file not found: %s", fileName)
 	}
 	bb, err := os.ReadFile(fileName)
 	if err != nil {
