@@ -34,6 +34,9 @@ go.work.sum
 *.ps1
 popmaint_panic_*.txt
 
+.env
+
+
 
 
 

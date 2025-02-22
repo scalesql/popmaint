@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pressly/goose/v3"
+	"github.com/scalesql/popmaint/assets"
 	"github.com/scalesql/popmaint/internal/mssqlz"
 )
 
@@ -19,7 +21,7 @@ type DBState struct {
 }
 
 // NewDBState returns a new database state
-func NewDBState(server, database, user, password string) (*DBState, error) {
+func NewDBState(server, database, user, password string, logger goose.Logger) (*DBState, error) {
 	if database == "" {
 		database = "PopMaint"
 	}
@@ -57,8 +59,26 @@ func NewDBState(server, database, user, password string) (*DBState, error) {
 		return nil, err
 	}
 
-	// TODO: check for db_owner role
-	// TODO: deploy schema
+	// check for db_owner role
+	user, isdbo, err := checkDBOwner(pool)
+	if err != nil {
+		return nil, fmt.Errorf("checkdbowner: %w", err)
+	}
+	if !isdbo {
+		return nil, fmt.Errorf("user '%s' is not a member of the db_owner role", user)
+	}
+	goose.SetBaseFS(assets.DBMigrationsFS)
+	err = goose.SetDialect("mssql")
+	if err != nil {
+		return nil, fmt.Errorf("goose.setdialect: %w", err)
+	}
+	goose.SetTableName("popmaint_db_version")
+	goose.SetLogger(logger)
+	err = goose.Up(pool, "migrations")
+	if err != nil {
+		return nil, fmt.Errorf("goose.up: %w", err)
+	}
+
 	st := &DBState{
 		pool: pool,
 	}
@@ -68,19 +88,19 @@ func NewDBState(server, database, user, password string) (*DBState, error) {
 func (st *DBState) SetLastCheckDB(db mssqlz.Database) error {
 	stmt := `
 	
-	MERGE dbo.dbcc_state AS t
+	MERGE dbo.checkdb_state AS t
 USING (VALUES 
     (@p1, @p2, @p3, @p4)
-) AS source (domain_name, server_name, [database_name], last_dbcc)
+) AS source (domain_name, server_name, [database_name], last_checkdb)
 ON (t.domain_name = source.domain_name 
     AND t.server_name = source.server_name 
     AND t.[database_name] = source.[database_name])
 WHEN MATCHED THEN 
     UPDATE SET 
-        last_dbcc = source.last_dbcc
+        last_checkdb = source.last_checkdb
 WHEN NOT MATCHED THEN 
-    INSERT (domain_name, server_name, [database_name], last_dbcc)
-    VALUES (source.domain_name, source.server_name, source.[database_name], source.last_dbcc);
+    INSERT (domain_name, server_name, [database_name], last_checkdb)
+    VALUES (source.domain_name, source.server_name, source.[database_name], source.last_checkdb);
 	
 	`
 	_, err := st.pool.Exec(stmt, db.Domain, db.ServerName, db.DatabaseName, time.Now().Round(1*time.Second))
@@ -89,8 +109,8 @@ WHEN NOT MATCHED THEN
 
 func (st *DBState) GetLastCheckDBDate(db mssqlz.Database) (time.Time, bool, error) {
 	stmt := `
-		SELECT 	last_dbcc
-		FROM	dbo.dbcc_state
+		SELECT 	last_checkdb
+		FROM	dbo.checkdb_state
 		WHERE	[domain_name] = @p1
 		AND		[server_name] = @p2
 		AND		[database_name] = @p3;
@@ -104,6 +124,17 @@ func (st *DBState) GetLastCheckDBDate(db mssqlz.Database) (time.Time, bool, erro
 		return time.Time{}, false, nil
 	}
 	return tm, false, err // there was an actual error
+}
+
+// checkDBOwner checks if the current user is a member of the db_owner role and returns the user name and the flag
+func checkDBOwner(db *sql.DB) (string, bool, error) {
+	var userName string
+	var isDBOwner int
+	err := db.QueryRow("SELECT SUSER_NAME(), IS_ROLEMEMBER('db_owner')").Scan(&userName, &isDBOwner)
+	if err != nil {
+		return "", false, err
+	}
+	return userName, isDBOwner == 1, nil
 }
 
 // Close the state repository

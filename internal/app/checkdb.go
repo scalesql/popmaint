@@ -105,7 +105,7 @@ func (engine *Engine) runCheckDB(ctx context.Context, noexec bool) int {
 			return 1
 		}
 		if ok {
-			databases[i].LastDBCC = tm
+			databases[i].LastCheckDB = tm
 		}
 	}
 
@@ -163,11 +163,11 @@ func (engine *Engine) runCheckDB(ctx context.Context, noexec bool) int {
 		}
 
 		child.Info(fmt.Sprintf("CHECKDB: %s.%s (%d mb)  last_dbcc: %s",
-			db.ServerName, db.DatabaseName, db.DatabaseMB, db.LastDBCC),
+			db.ServerName, db.DatabaseName, db.DatabaseMB, db.LastCheckDB),
 			"server", db.ServerName,
 			"database", db.DatabaseName,
 			"size_mb", db.DatabaseMB,
-			"checkdb.last_dbcc", db.LastDBCC.Format(time.RFC3339),
+			"checkdb.last_dbcc", db.LastCheckDB.Format(time.RFC3339),
 		)
 
 		// get the estimated tempdb space
@@ -261,6 +261,6 @@ func intervalTooEarly(db mssqlz.Database, days int) bool {
 	if days == 0 {
 		return false
 	}
-	nextTime := db.LastDBCC.Add((time.Duration(days)*24 - 1) * time.Hour)
+	nextTime := db.LastCheckDB.Add((time.Duration(days)*24 - 1) * time.Hour)
 	return nextTime.After(time.Now())
 }

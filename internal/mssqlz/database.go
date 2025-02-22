@@ -16,7 +16,7 @@ type Database struct {
 	FQDN            string
 	DatabaseName    string    `db:"database_name"`
 	DatabaseMB      int       `db:"database_mb"`
-	LastDBCC        time.Time `db:"last_dbcc"`
+	LastCheckDB     time.Time `db:"last_checkdb"`
 	ServerName      string    `db:"server_name"`
 	Domain          string
 	Computer        string
@@ -40,7 +40,7 @@ func (db Database) Path() string {
 
 // LastDBCCDays returns the number of days (24 hour periods) since the last DBCC was run.
 func (db Database) LastDBCCDays() int {
-	return int(time.Since(db.LastDBCC).Hours() / 24)
+	return int(time.Since(db.LastCheckDB).Hours() / 24)
 }
 
 // OnlineDatabases returns a list of datbases that are online.  It includes system databases.

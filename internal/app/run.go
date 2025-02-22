@@ -168,7 +168,8 @@ func Run(cmdLine CommandLine, getenv func(string) string) int {
 			appconfig.Repository.Server,
 			appconfig.Repository.Database,
 			appconfig.Repository.UserName,
-			appconfig.Repository.Password)
+			appconfig.Repository.Password,
+			logger)
 		if err != nil {
 			logger.Error(fmt.Errorf("state.new: %w", err).Error())
 			return 1

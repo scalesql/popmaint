@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"maps"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/fatih/color"
@@ -25,6 +26,20 @@ func (px PX) Warn(msg string, args ...any) {
 }
 func (px PX) Error(msg string, args ...any) {
 	px.Log(LevelError, msg, args...)
+}
+
+// Fatalf exists to support "goose" logging.  DO NOT USE.
+func (px PX) Fatalf(format string, v ...any) {
+	msg := fmt.Sprintf(format, v...)
+	px.Error(msg)
+	os.Exit(1)
+}
+
+// Printf exists to support "goose" logging
+func (px PX) Printf(format string, v ...any) {
+	msg := fmt.Sprintf(format, v...)
+	msg = strings.TrimSpace(msg)
+	px.Info(msg)
 }
 
 // Log an event.  Args are passed as "k", value pairs in an array

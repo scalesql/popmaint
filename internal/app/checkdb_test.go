@@ -14,32 +14,32 @@ func TestDatabaseSort(t *testing.T) {
 	dd := []mssqlz.Database{
 		{
 			DatabaseName: "One",
-			LastDBCC:     time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+			LastCheckDB:  time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 			DatabaseMB:   100,
 		},
 		{
 			DatabaseName: "Two",
-			LastDBCC:     time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+			LastCheckDB:  time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 			DatabaseMB:   300,
 		},
 		{
 			DatabaseName: "One-Plus",
-			LastDBCC:     time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+			LastCheckDB:  time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 			DatabaseMB:   200,
 		},
 		{
 			DatabaseName: "Three",
-			LastDBCC:     time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC),
+			LastCheckDB:  time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC),
 			DatabaseMB:   100,
 		},
 		{
 			DatabaseName: "Four",
-			LastDBCC:     time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC),
+			LastCheckDB:  time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC),
 			DatabaseMB:   200,
 		},
 		{
 			DatabaseName: "Five",
-			LastDBCC:     time.Date(1950, 1, 1, 0, 0, 0, 0, time.UTC),
+			LastCheckDB:  time.Date(1950, 1, 1, 0, 0, 0, 0, time.UTC),
 			DatabaseMB:   200,
 		},
 	}
@@ -54,7 +54,7 @@ func TestDatabaseSort(t *testing.T) {
 func TestIntervalTooEarly(t *testing.T) {
 	assert := assert.New(t)
 	now := time.Now()
-	db := mssqlz.Database{LastDBCC: now.Add((-1 * 3 * 24) * time.Hour)}
+	db := mssqlz.Database{LastCheckDB: now.Add((-1 * 3 * 24) * time.Hour)}
 	assert.True(intervalTooEarly(db, 7))
 	assert.False(intervalTooEarly(db, 2))
 }
