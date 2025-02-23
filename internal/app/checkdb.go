@@ -13,6 +13,7 @@ import (
 	"github.com/scalesql/popmaint/internal/maint"
 	"github.com/scalesql/popmaint/internal/mssqlz"
 	"github.com/scalesql/popmaint/internal/state"
+	"github.com/scalesql/popmaint/internal/zerr"
 
 	"github.com/pkg/errors"
 )
@@ -207,6 +208,13 @@ func (engine *Engine) runCheckDB(ctx context.Context, noexec bool) int {
 					"duration_sec", int(time.Since(t0).Round(1*time.Second).Seconds()),
 					"checkdb", plan.CheckDB,
 				)
+
+				// Log it right here
+				err = engine.st.LogCheckDB(engine.Plan.Name, engine.JobID, db, time.Since(t0))
+				if err != nil {
+					child.Error(zerr.Wrap(err, "logcheckdb").Error())
+					exitCode = 1
+				}
 			}
 		}
 		totals.count++

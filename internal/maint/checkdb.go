@@ -25,7 +25,7 @@ func CheckDB(ctx context.Context, logger lockmon.ExecLogger, host string, db mss
 		return err
 	}
 	defer pool.Close()
-	maxdop, err := plan.MaxDop(db.Cores, db.MaxDop)
+	maxdop, err := plan.MaxDop(db.Cores, db.Maxdop)
 	if err != nil {
 		return err
 	}

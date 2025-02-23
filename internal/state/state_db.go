@@ -2,16 +2,13 @@ package state
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/pressly/goose/v3"
 	"github.com/scalesql/popmaint/assets"
-	"github.com/scalesql/popmaint/internal/mssqlz"
 )
 
 // TODO maybe logging the event will need the plan?
@@ -83,47 +80,6 @@ func NewDBState(server, database, user, password string, logger goose.Logger) (*
 		pool: pool,
 	}
 	return st, nil
-}
-
-func (st *DBState) SetLastCheckDB(db mssqlz.Database) error {
-	stmt := `
-	
-	MERGE dbo.checkdb_state AS t
-USING (VALUES 
-    (@p1, @p2, @p3, @p4)
-) AS source (domain_name, server_name, [database_name], last_checkdb)
-ON (t.domain_name = source.domain_name 
-    AND t.server_name = source.server_name 
-    AND t.[database_name] = source.[database_name])
-WHEN MATCHED THEN 
-    UPDATE SET 
-        last_checkdb = source.last_checkdb
-WHEN NOT MATCHED THEN 
-    INSERT (domain_name, server_name, [database_name], last_checkdb)
-    VALUES (source.domain_name, source.server_name, source.[database_name], source.last_checkdb);
-	
-	`
-	_, err := st.pool.Exec(stmt, db.Domain, db.ServerName, db.DatabaseName, time.Now().Round(1*time.Second))
-	return err
-}
-
-func (st *DBState) GetLastCheckDBDate(db mssqlz.Database) (time.Time, bool, error) {
-	stmt := `
-		SELECT 	last_checkdb
-		FROM	dbo.checkdb_state
-		WHERE	[domain_name] = @p1
-		AND		[server_name] = @p2
-		AND		[database_name] = @p3;
-	`
-	var tm time.Time
-	err := st.pool.QueryRow(stmt, db.Domain, db.ServerName, db.DatabaseName).Scan(&tm)
-	if err == nil { // we found it
-		return tm, true, nil
-	}
-	if errors.Is(err, sql.ErrNoRows) { // we didn't find it
-		return time.Time{}, false, nil
-	}
-	return tm, false, err // there was an actual error
 }
 
 // checkDBOwner checks if the current user is a member of the db_owner role and returns the user name and the flag

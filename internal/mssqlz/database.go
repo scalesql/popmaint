@@ -24,7 +24,7 @@ type Database struct {
 	EngineEdition   int    `db:"engine_edition"`
 	ProductVersion  string `db:"product_version"`
 	MajorVersion    int    `db:"major_version"`
-	MaxDop          int
+	Maxdop          int
 	Cores           int `db:"cpu_count"`
 	TempdbMB        int `db:"tempdb_mb"`
 	EstimatedTempdb int

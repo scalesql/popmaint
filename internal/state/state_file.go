@@ -103,3 +103,8 @@ func (st *FileState) read() error {
 	}
 	return json.Unmarshal(bb, st)
 }
+
+// LogCheckDB is a noop for the file state
+func (st *FileState) LogCheckDB(_ string, _ string, _ mssqlz.Database, _ time.Duration) error {
+	return nil
+}

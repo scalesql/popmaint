@@ -183,5 +183,6 @@ func Run(cmdLine CommandLine, getenv func(string) string) int {
 	}(st)
 
 	engine := NewEngine(logger, plan, st)
+	engine.JobID = jobid
 	return engine.runPlan(ctx, cmdLine.NoExec)
 }
