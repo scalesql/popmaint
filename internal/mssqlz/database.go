@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/billgraziano/mssqlh"
+	"github.com/billgraziano/mssqlh/v2"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/microsoft/go-mssqldb"
 )

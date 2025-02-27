@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/billgraziano/mssqlh"
+	"github.com/billgraziano/mssqlh/v2"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -49,9 +49,10 @@ func TestBlocking(t *testing.T) {
 			ROLLBACK TRAN 
 `)
 	}(pool)
-	result := ExecMonitor(context.Background(), consoleWriter{}, pool, `WHILE @@TRANCOUNT > 0 ROLLBACK TRAN ;
+	result := ExecMonitor(context.Background(), consoleWriter{}, pool, `
+		WHILE @@TRANCOUNT > 0 ROLLBACK TRAN ;
 		BEGIN TRAN 
-			SELECT TOP 10 * FROM AdventureWorks2016.Person.Person WITH(UPDLOCK, TABLOCK);
+			SELECT TOP 11 * FROM AdventureWorks2016.Person.Person WITH(UPDLOCK, TABLOCK);
 		ROLLBACK TRAN `,
 		time.Duration(0))
 	assert.Error(result.Err)

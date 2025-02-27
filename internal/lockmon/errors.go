@@ -1,9 +1,15 @@
 package lockmon
 
 import (
+	"errors"
 	"fmt"
 
 	mssql "github.com/microsoft/go-mssqldb"
+)
+
+var (
+	// ErrExitRequested tells the hosting application to exit immediately
+	ErrExitRequested = errors.New("exit")
 )
 
 // ErrorDiagnostics returns the formatted mssql.Error and any

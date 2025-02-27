@@ -10,7 +10,7 @@ import (
 	"github.com/scalesql/popmaint/internal/lockmon"
 	"github.com/scalesql/popmaint/internal/mssqlz"
 
-	"github.com/billgraziano/mssqlh"
+	"github.com/billgraziano/mssqlh/v2"
 )
 
 type CheckDBEstimate struct {

@@ -14,8 +14,6 @@ import (
 	"github.com/scalesql/popmaint/internal/mssqlz"
 	"github.com/scalesql/popmaint/internal/state"
 	"github.com/scalesql/popmaint/internal/zerr"
-
-	"github.com/pkg/errors"
 )
 
 type Engine struct {
@@ -75,7 +73,7 @@ func (engine *Engine) runCheckDB(ctx context.Context, noexec bool) int {
 	for _, fqdn := range plan.Servers {
 		srv, err := mssqlz.GetServer(ctx, fqdn)
 		if err != nil {
-			child.Error(errors.Wrap(err, fqdn).Error(), "action", ActionCheckdb)
+			child.Error(zerr.Wrap(err, fqdn).Error(), "action", ActionCheckdb)
 			continue
 		}
 		dupe := dupecheck.IsDupe(srv)
@@ -85,7 +83,7 @@ func (engine *Engine) runCheckDB(ctx context.Context, noexec bool) int {
 		}
 		dbs, err := mssqlz.OnlineDatabases(ctx, fqdn)
 		if err != nil {
-			child.Error(errors.Wrap(err, fqdn).Error(), "action", ActionCheckdb)
+			child.Error(zerr.Wrap(err, fqdn).Error(), "action", ActionCheckdb)
 			continue
 		}
 		databases = append(databases, dbs...)
@@ -192,6 +190,14 @@ func (engine *Engine) runCheckDB(ctx context.Context, noexec bool) int {
 			// Log the error and keep going
 			exitCode = 1
 			child.Error(fmt.Sprintf("CHECKDB: %s: %s", db.ServerName, err.Error()))
+
+			// get the root error
+			// var sqlerr mssql.Error
+			// if errors.As(err, &sqlerr) {
+			// 	fmt.Printf("sqlerr: %v\n", sqlerr)
+			// 	fmt.Println("sqlerr:", len(sqlerr.All))
+			// 	fmt.Println("sqlerr:", sqlerr.Number)
+			// }
 			continue // so we don't set the state
 		}
 		if !noexec { // if we really did it, save it

@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/billgraziano/mssqlh"
+	"github.com/billgraziano/mssqlh/v2"
 	"github.com/jmoiron/sqlx"
 )
 
