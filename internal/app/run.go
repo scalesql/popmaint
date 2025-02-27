@@ -169,12 +169,19 @@ func Run(cmdLine CommandLine, getenv func(string) string) int {
 			appconfig.Repository.Database,
 			appconfig.Repository.UserName,
 			appconfig.Repository.Password,
-			logger)
+			logger,
+			userName)
 		if err != nil {
 			logger.Error(fmt.Errorf("state.new: %w", err).Error())
 			return 1
 		}
-		logger.Info(fmt.Sprintf("State: server: %s  database: %s", appconfig.Repository.Server, appconfig.Repository.Database))
+		var msg string
+		if appconfig.Repository.UserName == "" && appconfig.Repository.Password == "" {
+			msg = fmt.Sprintf("REPOSITORY: %s on %s as %s", appconfig.Repository.Database, appconfig.Repository.Server, userName)
+		} else {
+			msg = fmt.Sprintf("REPOSITORY: %s on %s as %s (SQL)", appconfig.Repository.Database, appconfig.Repository.Server, appconfig.Repository.UserName)
+		}
+		logger.Info(msg)
 	}
 	defer func(st state.Stater) {
 		if err := st.Close(); err != nil {

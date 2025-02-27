@@ -18,10 +18,14 @@ type DBState struct {
 }
 
 // NewDBState returns a new database state
-func NewDBState(server, database, user, password string, logger goose.Logger) (*DBState, error) {
-	if database == "" {
-		database = "PopMaint"
+func NewDBState(server, database, user, password string, logger goose.Logger, svcacct string) (*DBState, error) {
+	if server == "" {
+		return nil, fmt.Errorf("server is required")
 	}
+	if database == "" {
+		return nil, fmt.Errorf("repository database is required")
+	}
+
 	host, instance, port := parseFQDN(server)
 	if host == "" {
 		return nil, fmt.Errorf("invalid server: %s", server)
