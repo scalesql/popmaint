@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+	"github.com/scalesql/popmaint/internal/config"
 	"github.com/scalesql/popmaint/internal/mssqlz"
 )
 
@@ -62,30 +64,23 @@ type checkdblog struct {
 	Maxdop       int32     `db:"maxdop"`
 }
 
-func (st *DBState) LogCheckDB(plan, jobid string, db mssqlz.Database, dur time.Duration) error {
-	log := checkdblog{
-		PlanName:     plan,
-		DomainName:   db.Domain,
-		ServerName:   db.ServerName,
-		DatabaseName: db.DatabaseName,
-		CompletedAt:  time.Now(),
-		DurationSec:  int32(dur.Seconds()),
-		DataMB:       int64(db.DatabaseMB),
-	}
+func (st *DBState) LogCheckDB(plan config.Plan, jobid string, db mssqlz.Database, dur time.Duration) error {
+	m := make(map[string]any)
+	m["plan_name"] = plan.Name
+	m["job_id"] = jobid
+	m["domain_name"] = db.Domain
+	m["server_name"] = db.ServerName
+	m["database_name"] = db.DatabaseName
+	m["completed_at"] = time.Now()
+	m["duration_sec"] = int32(dur.Seconds())
+	m["data_mb"] = int64(db.DatabaseMB)
 
 	query := `
         INSERT INTO dbo.checkdb_log (
-            plan_name, job_id, domain_name, server_name, database_name, completed_at, duration_sec, data_mb) VALUES (@PlanName, @JobID, @DomainName, @ServerName, @DatabaseName, @CompletedAt, @DurationSec, @DataMB);
+            		plan_name, job_id, domain_name, server_name, database_name, completed_at, duration_sec, data_mb) 
+			VALUES (:plan_name, :job_id, :domain_name, :server_name, :database_name, :completed_at, :duration_sec, :data_mb);
     `
-	_, err := st.pool.Exec(query,
-		sql.Named("PlanName", log.PlanName),
-		sql.Named("JobID", jobid),
-		sql.Named("DomainName", log.DomainName),
-		sql.Named("ServerName", log.ServerName),
-		sql.Named("DatabaseName", log.DatabaseName),
-		sql.Named("CompletedAt", log.CompletedAt),
-		sql.Named("DurationSec", log.DurationSec),
-		sql.Named("DataMB", log.DataMB),
-	)
+	pool := sqlx.NewDb(st.pool, "sqlserver")
+	_, err := pool.NamedExec(query, m)
 	return err
 }

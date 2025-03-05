@@ -6,8 +6,14 @@ Security
 ------------------------------------------------------------------
 
 ### Required Permissions
-* In each database where maintenance is performed, `sysadmin` server role or `db_owner` in the database
-* `db_owner` on the repository database (`PopMaint`)
+Permissions can be granted at the server level or individually in each database.
+* Server-level
+    * `sysadmin` role
+* Database-level
+    * `VIEW SERVER STATE` server permission
+    * `db_owner` in each database
+* Repository
+    * `db_owner` in the repository database (`PopMaint`) or higher
 
 
 Command-line Flags

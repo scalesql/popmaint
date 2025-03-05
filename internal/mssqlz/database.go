@@ -70,6 +70,7 @@ var dblistQuery = `
 	JOIN	sys.master_files mf ON mf.database_id = d.database_id
 	WHERE	mf.[type] = 0
 	AND		d.[state] = 0
+	AND 	d.[name] NOT IN ('tempdb')
 	GROUP BY d.[name]
 ) 
 SELECT CTE.*

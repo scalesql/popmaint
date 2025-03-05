@@ -216,7 +216,7 @@ func (engine *Engine) runCheckDB(ctx context.Context, noexec bool) int {
 				)
 
 				// Log it right here
-				err = engine.st.LogCheckDB(engine.Plan.Name, engine.JobID, db, time.Since(t0))
+				err = engine.st.LogCheckDB(engine.Plan, engine.JobID, db, time.Since(t0))
 				if err != nil {
 					child.Error(zerr.Wrap(err, "logcheckdb").Error())
 					exitCode = 1
