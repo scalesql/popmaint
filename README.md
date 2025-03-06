@@ -41,5 +41,10 @@ This will run DBCC against the system databases.
 
 Releases
 --------------------------------------------------------------------
+### 0.22 (March 2025)
+* CHECKDB skips `tempdb`
+* MAXDOP settings now include an option to set a percentage of the server MAXDOP
+* Fixed the display format of the last time DBCC ran in the log
+
 ### 0.21 (February 2025)
 * First public release
