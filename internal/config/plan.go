@@ -14,11 +14,12 @@ import (
 type Duration time.Duration
 
 type Plan struct {
-	Name          string
-	Servers       []string `toml:"servers"`
-	MaxDopCores   int      `toml:"maxdop_cores"`
-	MaxDopPercent int      `toml:"maxdop_percent"`
-	Log           struct {
+	Name                string
+	Servers             []string `toml:"servers"`
+	MaxDopCores         int      `toml:"maxdop_cores"`
+	MaxDopPercent       int      `toml:"maxdop_pct"`
+	MaxDopPercentMaxDop int      `toml:"maxdop_pct_maxdop"`
+	Log                 struct {
 		Level string `toml:"level"`
 	} `toml:"log"`
 	CheckDB struct {
@@ -57,7 +58,7 @@ func ReadPlan(name string) (Plan, error) {
 		return Plan{}, fmt.Errorf("invalid maxdop_cores: %d", plan.MaxDopCores)
 	}
 	if plan.MaxDopPercent < 0 || plan.MaxDopPercent > 100 {
-		return Plan{}, fmt.Errorf("invalid maxdop_percent: %d", plan.MaxDopPercent)
+		return Plan{}, fmt.Errorf("invalid maxdop_pct: %d", plan.MaxDopPercent)
 	}
 	if plan.CheckDB.DataPurity && plan.CheckDB.PhysicalOnly {
 		return Plan{}, fmt.Errorf("can't set data_purity and physical_only")
@@ -85,56 +86,75 @@ func (p *Plan) RemoveDupes() []string {
 	return dupes
 }
 
-// MaxDop determines the MAXDOP for a particular server
-func (p Plan) MaxDop(cores, maxdop int) (int, error) {
+func (p Plan) MaxDop(serverCores, serverMaxdop int) (int, error) {
 	if p.MaxDopCores < 0 {
 		return 0, fmt.Errorf("invalid maxdop_cores: %d", p.MaxDopCores)
 	}
 	if p.MaxDopPercent < 0 || p.MaxDopPercent > 100 {
-		return 0, fmt.Errorf("invalid maxdop_percent: %d", p.MaxDopPercent)
+		return 0, fmt.Errorf("invalid maxdop_pct: %d", p.MaxDopPercent)
 	}
-	if p.MaxDopCores == 0 && p.MaxDopPercent == 0 {
+	if p.MaxDopPercentMaxDop < 0 || p.MaxDopPercentMaxDop > 100 {
+		return 0, fmt.Errorf("invalid maxdop_pct_maxdop: %d", p.MaxDopPercent)
+	}
+
+	// if we didn't set any values, use the default
+	if p.MaxDopCores == 0 && p.MaxDopPercent == 0 && p.MaxDopPercentMaxDop == 0 {
 		return 0, nil
 	}
-	corespct := cores // start with cores and reduce if needed
-	if p.MaxDopPercent > 0 {
-		val := float64(cores) * (float64(p.MaxDopPercent) / 100.0)
-		corespct = int(val)
-		if corespct == 0 {
-			corespct = 1
+
+	// figure out the lowest value from our settings
+	// one of these will be set since we exited above if they were all zero
+	ceiling := p.maxdopCeiling(serverCores, serverMaxdop)
+	if serverMaxdop == 0 {
+		if ceiling < serverCores {
+			return ceiling, nil // maxdop is not set and we have a ceiling below cores
+		} else {
+			return 0, nil // just use all the cores
 		}
-	}
-	coresnum := cores // start with cores and reduce if needed
-	if p.MaxDopCores > 0 {
-		if coresnum > p.MaxDopCores {
-			coresnum = p.MaxDopCores
+	} else {
+		if ceiling < serverMaxdop {
+			return ceiling, nil // maxdop is set and we have a ceiling below that
 		}
+		return 0, nil // just use the server maxdop setting
 	}
-	value := lowest(coresnum, corespct)
-	if value >= cores || value >= maxdop {
-		return 0, nil
-	}
-	// MAYBE: if >= 3 and odd, subtract 1; based on `maxdop_even=true`
-	return value, nil
 }
 
-// lowest returns the lowest non-zero value
-// it returns zero if no values are > 0
-func lowest(vals ...int) int {
-	maxint := int(^uint(0) >> 1)
-	lowest := maxint
-	for _, j := range vals {
-		if j <= 0 {
-			continue
-		}
-		if j < lowest {
-			lowest = j
+// calcMaxdopCeiling calculates the ceiling imposed on MAXDOP by the settings
+// from the TOML file. It uses the lowest of the calculated values
+// ceiling will always be 1 or higher
+func (p Plan) maxdopCeiling(serverCores, serverMaxdop int) int {
+	ceiling := serverCores
+	if p.MaxDopCores > 0 { // we have a setting
+		if p.MaxDopCores < ceiling { // it's less than we already have
+			ceiling = p.MaxDopCores // plan cores
 		}
 	}
-	if lowest == maxint {
-		return 0
+
+	if p.MaxDopPercent > 0 { // we have a setting
+		val := int(float64(serverCores) * (float64(p.MaxDopPercent) / 100.0))
+		if val == 0 {
+			val = 1
+		}
+		if val < ceiling {
+			ceiling = val // plan cores from percent
+		}
 	}
-	return lowest
+
+	// calculate as a percent of maxdop
+	if p.MaxDopPercentMaxDop > 0 && serverMaxdop > 0 { // we have a setting
+		val := int(float64(serverMaxdop) * (float64(p.MaxDopPercentMaxDop) / 100.0))
+		if val == 0 {
+			val = 1
+		}
+		if val < ceiling {
+			ceiling = val // plan cores from percent
+		}
+	}
+
+	if ceiling < 1 { // I think this should never hit
+		ceiling = 1
+	}
+	return ceiling
 }
 
 func (d *Duration) UnmarshalText(b []byte) error {

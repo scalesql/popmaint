@@ -7,10 +7,12 @@ Security
 
 ### Required Permissions
 Permissions can be granted at the server level or individually in each database.
-* Server-level
+* If the service account is a system administrator
     * `sysadmin` role
-* Database-level
-    * `VIEW SERVER STATE` server permission
+* If the service account is not a system administrator
+    * `VIEW ANY DEFINITION`
+    * `VIEW SERVER STATE` 
+    * `VIEW ANY DATABASE` 
     * `db_owner` in each database
 * Repository
     * `db_owner` in the repository database (`PopMaint`) or higher
@@ -56,7 +58,8 @@ servers = [
     ]
 
 maxdop_cores = 2
-maxdop_percent = 50
+maxdop_pct = 50
+maxcop_pct_maxdop = 0 
 
 [log]
 # level = "debug"
@@ -74,6 +77,14 @@ estimate_only = false
 extended_logical_checks = false 
 data_purity = false 
 ```
+
+### MAXDOP Settings
+There are three settings that control the MAXDOP that CHECKDB uses.
+* `maxdop_cores` - cap at an absolute number of cores 
+* `maxdop_pct` - cap at a percentage of the cores (rounded down)
+* `maxcop_pct_maxdop` - cap at a percentage of server MAXDOP rounded down
+
+All these are optional.  If any of these are set, the MAXDOP is set at the lowest value from any of them providing it is lower than the server MAXDOP and server cores.
 
 Logging Functions
 ------------------------------------------------------------------

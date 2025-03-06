@@ -152,7 +152,7 @@ func Run(cmdLine CommandLine, getenv func(string) string) int {
 		"servers", len(plan.Servers),
 		//"cmdLine.NoExec", cmdLine.NoExec,
 		"maxdop_cores", plan.MaxDopCores,
-		"maxdop_percent", plan.MaxDopPercent)
+		"maxdop_pct", plan.MaxDopPercent)
 
 	// Set the proper state provider
 	var st state.Stater
