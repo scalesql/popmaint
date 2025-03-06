@@ -162,7 +162,7 @@ func (engine *Engine) runCheckDB(ctx context.Context, noexec bool) int {
 		}
 
 		child.Info(fmt.Sprintf("CHECKDB: %s.%s (%d mb)  last_dbcc: %s",
-			db.ServerName, db.DatabaseName, db.DatabaseMB, db.LastCheckDB),
+			db.ServerName, db.DatabaseName, db.DatabaseMB, db.LastCheckDB.Format(time.RFC3339)),
 			"server", db.ServerName,
 			"database", db.DatabaseName,
 			"size_mb", db.DatabaseMB,
