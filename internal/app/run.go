@@ -30,7 +30,7 @@ func Run(cmdLine CommandLine, getenv func(string) string) int {
 	exenameBase := filepath.Base(exename)
 	ctx := context.Background()
 
-	userName, err := currentUserName()
+	osusername, err := currentUserName()
 	if err != nil {
 		fmt.Println("ERROR", fmt.Errorf("currentUserName: %w", err).Error())
 	}
@@ -58,7 +58,7 @@ func Run(cmdLine CommandLine, getenv func(string) string) int {
 	logger.SetCached("commit()", build.Commit())
 	logger.SetCached("version()", build.Version())
 	logger.SetCached("built()", build.Built().Format(time.RFC3339))
-	logger.SetCached("user()", userName)
+	logger.SetCached("user()", osusername)
 
 	logger.AddFields("job_id", jobid)
 	if cmdLine.Dev {
@@ -83,13 +83,13 @@ func Run(cmdLine CommandLine, getenv func(string) string) int {
 		"app.exec.path", exename,
 		"app.exec.name", exenameBase,
 		"app.exec.no_exec", cmdLine.NoExec,
-		"app.exec.user", userName,
+		"app.exec.user", osusername,
 		"app.exec.pid", os.Getpid(),
 		"app.exec.host", hn,
 		"app.exec.is_terminal", term.IsTerminal(int(os.Stdout.Fd())),
 	)
 	logger.Info(fmt.Sprintf("%s %s (%s) built %s", strings.ToUpper(exenameBase), build.Version(), build.Commit(), build.Built()))
-	msg := fmt.Sprintf("%s on %s as %s", strings.ToUpper(exenameBase), hn, userName)
+	msg := fmt.Sprintf("%s on %s as %s", strings.ToUpper(exenameBase), hn, osusername)
 	if cmdLine.Dev {
 		msg += fmt.Sprintf("  cmdLine.Dev: %t", cmdLine.Dev)
 	}
@@ -144,6 +144,26 @@ func Run(cmdLine CommandLine, getenv func(string) string) int {
 		logger.Info(fmt.Sprintf("logging at %s from %s", logger.Level(), logSource))
 	}
 
+	// Print the environment variables
+	keys := make([]string, 0)
+	for _, env := range os.Environ() {
+
+		parts := strings.SplitN(env, "=", 2)
+		key := parts[0]
+		if !strings.HasPrefix(key, "POPMAINT") {
+			continue // skip non-popmaint environment variables
+		}
+		value := ""
+		if len(parts) > 1 {
+			value = parts[1]
+		}
+
+		keys = append(keys, fmt.Sprintf("%s (%d)", key, len(value)))
+	}
+	if len(keys) > 0 {
+		logger.Debug("ENV: " + strings.Join(keys, ", "))
+	}
+
 	dupes := plan.RemoveDupes()
 	for _, str := range dupes {
 		logger.Warn(fmt.Sprintf("%s: duplicate server: %s", cmdLine.Plan, str))
@@ -169,17 +189,16 @@ func Run(cmdLine CommandLine, getenv func(string) string) int {
 			appconfig.Repository.Database,
 			appconfig.Repository.UserName,
 			appconfig.Repository.Password,
-			logger,
-			userName)
+			logger)
 		if err != nil {
 			logger.Error(fmt.Errorf("state.new: %w", err).Error())
 			return 1
 		}
 		var msg string
 		if appconfig.Repository.UserName == "" && appconfig.Repository.Password == "" {
-			msg = fmt.Sprintf("REPOSITORY: %s on %s as %s", appconfig.Repository.Database, appconfig.Repository.Server, userName)
+			msg = fmt.Sprintf("REPOSITORY: [%s] on [%s] as [%s]", appconfig.Repository.Database, appconfig.Repository.Server, osusername)
 		} else {
-			msg = fmt.Sprintf("REPOSITORY: %s on %s as %s (SQL)", appconfig.Repository.Database, appconfig.Repository.Server, appconfig.Repository.UserName)
+			msg = fmt.Sprintf("REPOSITORY: [%s] on [%s] as [%s] (SQL)", appconfig.Repository.Database, appconfig.Repository.Server, appconfig.Repository.UserName)
 		}
 		logger.Info(msg)
 	}

@@ -13,12 +13,18 @@ import (
 
 // TODO maybe logging the event will need the plan?
 
+type Logger interface {
+	Fatalf(format string, v ...interface{})
+	Printf(format string, v ...interface{})
+	Debug(msg string, args ...any)
+}
+
 type DBState struct {
 	pool *sql.DB
 }
 
 // NewDBState returns a new database state
-func NewDBState(server, database, user, password string, logger goose.Logger, svcacct string) (*DBState, error) {
+func NewDBState(server, database, user, password string, logger Logger) (*DBState, error) {
 	if server == "" {
 		return nil, fmt.Errorf("server is required")
 	}
@@ -26,30 +32,11 @@ func NewDBState(server, database, user, password string, logger goose.Logger, sv
 		return nil, fmt.Errorf("repository database is required")
 	}
 
-	host, instance, port := parseFQDN(server)
-	if host == "" {
-		return nil, fmt.Errorf("invalid server: %s", server)
+	u, err := connstr(server, database, user, password)
+	if err != nil {
+		return nil, fmt.Errorf("connstr: %w", err)
 	}
-	//println(host, instance, port)
-	query := url.Values{}
-	query.Add("app name", "popmaint.exe")
-	query.Add("database", database)
-	// query.Add("encrypt", "optional")
-
-	u := &url.URL{
-		Scheme:   "sqlserver",
-		Host:     host,
-		RawQuery: query.Encode(),
-	}
-	if instance != "" {
-		u.Path = instance
-	}
-	if port != 0 {
-		u.Host = fmt.Sprintf("%s:%d", host, port)
-	}
-	if user != "" || password != "" {
-		u.User = url.UserPassword(user, password)
-	}
+	logger.Debug(fmt.Sprintf("REPOSITORY: %s", redacted(u)))
 	pool, err := sql.Open("sqlserver", u.String())
 	if err != nil {
 		return nil, err
@@ -84,6 +71,61 @@ func NewDBState(server, database, user, password string, logger goose.Logger, sv
 		pool: pool,
 	}
 	return st, nil
+}
+
+func connstr(server, database, user, password string) (url.URL, error) {
+	host, instance, port := parseFQDN(server)
+	if host == "" {
+		return url.URL{}, fmt.Errorf("invalid server: %s", server)
+	}
+
+	query := url.Values{}
+	query.Add("app name", "popmaint.exe")
+	query.Add("database", database)
+	// query.Add("encrypt", "optional")
+
+	u := url.URL{
+		Scheme:   "sqlserver",
+		Host:     host,
+		RawQuery: query.Encode(),
+	}
+	if instance != "" {
+		u.Path = instance
+	}
+	if port != 0 {
+		u.Host = fmt.Sprintf("%s:%d", host, port)
+	}
+	if user != "" && password != "" {
+		u.User = url.UserPassword(user, password)
+	}
+	return u, nil
+}
+
+func redacted(u url.URL) string {
+	if u.User == nil {
+		return u.String()
+	}
+	usr := u.User.Username()
+	if usr == "" {
+		usr = "_notset_"
+	}
+	pwd, set := u.User.Password()
+	if !set {
+		pwd = "_notset_"
+	} else {
+		// redact all but the first character
+		var newpwd string
+		for i := range pwd {
+			if i == 0 {
+				newpwd += string(pwd[i])
+			} else {
+				newpwd += "_"
+			}
+		}
+		pwd = newpwd
+	}
+	u.User = url.UserPassword(usr, pwd)
+	return u.String()
 }
 
 // checkDBOwner checks if the current user is a member of the db_owner role and returns the user name and the flag
