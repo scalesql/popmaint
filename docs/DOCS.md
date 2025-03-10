@@ -7,6 +7,7 @@ Security
 
 ### Required Permissions
 Permissions can be granted at the server level or individually in each database.
+
 * If the service account is a system administrator
     * `sysadmin` role
 * If the service account is not a system administrator
@@ -21,11 +22,12 @@ Permissions can be granted at the server level or individually in each database.
 Command-line Flags
 ------------------------------------------------------------------
 Usage: `popmaint -flags plan_name`
+
 * `plan_name` - Name of the plan to run. Do not include the `.toml` extension.
 * `-noexec` 
 * `-version`
 * `-exit #` - Run and exit with this code.  If an error is encountered, the app exits with a non-zero code.  This is for testing how your job scheduler responds to this.
-* `-log-level level` - "trace", "debug", "verbose", "info", "warn", or "error"
+* `-log-level` *level* - where level is one of `trace`, `debug`, `verbose`, `info`, `warn`, or `error`
 
 
 Application Configuration (TOML)
@@ -43,10 +45,10 @@ global.log.user = "user()"
 server = "server1"
 database = "PopMaint"
 username = "popmaint"
-password = "${POPMAINT_PASSWORD}"
+password = "${POPMAINT_REPO_PASSWORD}"
 ```
 
-For the `username` and `password`, environment variables can be substituted with `${environment_variable_name}` in the field value.  If the username and password aren't set, it will use a trusted connection.
+For the `username` and `password`, environment variables can be substituted with `${environment_variable_name}` in the field value.  If the username and password aren't set, it will use a trusted connection.  NOTE: There is a bug that doesn't support passwords with characters that would need to be URL encoded.
 
 Plan Configuration (TOML)
 ------------------------------------------------------------------
@@ -80,6 +82,7 @@ data_purity = false
 
 ### MAXDOP Settings
 There are three settings that control the MAXDOP that CHECKDB uses.
+
 * `maxdop_cores` - cap at an absolute number of cores 
 * `maxdop_pct` - cap at a percentage of the cores (rounded down)
 * `maxcop_pct_maxdop` - cap at a percentage of server MAXDOP rounded down
