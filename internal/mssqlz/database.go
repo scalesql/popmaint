@@ -71,6 +71,7 @@ var dblistQuery = `
 	WHERE	mf.[type] = 0
 	AND		d.[state] = 0
 	AND 	d.[name] NOT IN ('tempdb')
+	AND		d.source_database_id IS NULL
 	GROUP BY d.[name]
 ) 
 SELECT CTE.*
