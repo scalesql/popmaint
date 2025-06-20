@@ -59,12 +59,9 @@ func ExecMonitor(ctx context.Context, log ExecLogger, pool *sql.DB, stmt string,
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	// if we were passed a timeout, add that to the context
-	if timeout == time.Duration(0) {
-		ctx, cancel = context.WithCancel(ctx)
-	} else {
-		ctx, cancel = context.WithTimeout(ctx, timeout)
-	}
+
+	// this context will cancel in case of blocking or the statement completes
+	ctx, cancel = context.WithCancel(ctx)
 	defer cancel()
 
 	// get one connection we will use to run the statement
@@ -154,9 +151,25 @@ func (mon *monitor) execStmtContext(ctx context.Context, conn *sql.Conn, stmt st
 	errs := make([]error, 0)
 	var loggedErrors bool
 
-	retmsg := &sqlexp.ReturnMessage{}
 	// passing in retmsg as an arguement actives sqlexp.
 	// we can use this to get the messages from the server
+	retmsg := &sqlexp.ReturnMessage{}
+
+	// make sure we have a context
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	// make sure we have a cancel function
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithCancel(ctx)
+
+	// if we have a timeout, let's use that
+	if mon.timeout > time.Duration(0) {
+		ctx, cancel = context.WithTimeout(ctx, mon.timeout)
+	}
+	defer cancel()
+
 	rows, qe := conn.QueryContext(ctx, stmt, retmsg)
 	if qe != nil {
 		return loggedErrors, qe
@@ -198,14 +211,16 @@ func (mon *monitor) execStmtContext(ctx context.Context, conn *sql.Conn, stmt st
 			// results will be false
 			results = rows.NextResultSet()
 			if err := rows.Err(); err != nil {
-				// This is where "context canceled" error shows up
+				// This is where "context canceled" errors shows up
 				// which is context.Canceled
-				qe = handleError(log, err)
 				if !errors.Is(err, context.Canceled) {
-					log.Error(fmt.Sprintf("msgnextresultset: rows.err(): %s\n", err))
-					loggedErrors = true
-					errs = append(errs, err)
+					return true, fmt.Errorf("statement_timeout exceeded: %s", mon.timeout.String())
 				}
+				// otherwise, the error is likely a SQL Server
+				qe = handleError(log, err)
+				loggedErrors = true
+				errs = append(errs, err)
+
 			}
 			if results {
 				first = true

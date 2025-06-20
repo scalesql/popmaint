@@ -26,8 +26,8 @@ Usage: `popmaint -flags plan_name`
 * `plan_name` - Name of the plan to run. Do not include the `.toml` extension.
 * `-noexec` 
 * `-version`
-* `-exit #` - Run and exit with this code.  If an error is encountered, the app exits with a non-zero code.  This is for testing how your job scheduler responds to this.
-* `-log-level` *level* - where level is one of `trace`, `debug`, `verbose`, `info`, `warn`, or `error`
+* `-exit #` - Run and exit with this code.  If an error is encountered, the app exits with the non-zero code.  This is for testing how your job scheduler responds to this.
+* `-log-level` *level* - where *level* is one of `trace`, `debug`, `verbose`, `info`, `warn`, or `error`
 
 
 Application Configuration (TOML)
@@ -61,13 +61,14 @@ servers = [
 
 maxdop_cores = 2
 maxdop_pct = 50
-maxcop_pct_maxdop = 0 
+maxdop_pct_maxdop = 0 
 
 [log]
 # level = "debug"
 
 [checkdb]
-time_limit = "60m"
+time_limit = "60m"  # don't start new statements
+statement_timeout = "3h" # cancel a running statement
 included = ["master", "msdb", "corrupt_db"]
 excluded = ["otherdb"]
 min_interval_days = 0
@@ -80,12 +81,16 @@ extended_logical_checks = false
 data_purity = false 
 ```
 
+### Time Limits
+* `time_limit` is the time after which no new CHECKDB statement will start.
+*  `statement_timeout` is the duration after which a CHECKDB statement should be cancelled.  This is typically much higher than `time_limt`. It typically handles stuck processes or being blocked.  This should be higher than CHECKDB will ever run normally.
+
 ### MAXDOP Settings
 There are three settings that control the MAXDOP that CHECKDB uses.
 
 * `maxdop_cores` - cap at an absolute number of cores 
 * `maxdop_pct` - cap at a percentage of the cores (rounded down)
-* `maxcop_pct_maxdop` - cap at a percentage of server MAXDOP rounded down
+* `maxdop_pct_maxdop` - cap at a percentage of server MAXDOP rounded down
 
 All these are optional.  If any of these are set, the MAXDOP is set at the lowest value from any of them providing it is lower than the server MAXDOP and server cores.
 

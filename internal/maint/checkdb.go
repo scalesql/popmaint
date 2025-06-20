@@ -36,7 +36,7 @@ func CheckDB(ctx context.Context, logger lockmon.ExecLogger, host string, db mss
 	logger.Debug(stmt, "server", db.ServerName, "database", db.DatabaseName)
 
 	if !noexec {
-		result := lockmon.ExecMonitor(ctx, logger, pool, stmt, time.Duration(0))
+		result := lockmon.ExecMonitor(ctx, logger, pool, stmt, time.Duration(plan.CheckDB.StatementTimeout))
 		if result.Sessions != nil {
 			if len(result.Sessions) > 0 {
 				for _, s := range result.Sessions {

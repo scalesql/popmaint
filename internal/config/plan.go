@@ -24,6 +24,7 @@ type Plan struct {
 	} `toml:"log"`
 	CheckDB struct {
 		TimeLimit             Duration `toml:"time_limit" json:"-"`
+		StatementTimeout      Duration `toml:"statement_timeout" json:"-"`
 		NoIndex               bool     `toml:"no_index" json:"no_index"`
 		MaxSizeMB             int      `toml:"max_size_mb" json:"-"`
 		PhysicalOnly          bool     `toml:"physical_only" json:"physical_only"`
