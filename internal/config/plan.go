@@ -36,6 +36,9 @@ type Plan struct {
 		Excluded              []string `toml:"excluded" json:"-"`
 		MinIntervalDays       int      `toml:"min_interval_days" json:"-"`
 	} `toml:"checkdb" json:"checkdb"`
+	BackupHistory struct {
+		RetainDays int `toml:"retain_days" json:"retain_days"`
+	} `toml:"backup_history" json:"backup_history"`
 }
 
 func ReadPlan(name string) (Plan, error) {

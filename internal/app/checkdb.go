@@ -8,41 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scalesql/popmaint/internal/config"
-	"github.com/scalesql/popmaint/internal/lx"
 	"github.com/scalesql/popmaint/internal/maint"
 	"github.com/scalesql/popmaint/internal/mssqlz"
-	"github.com/scalesql/popmaint/internal/state"
 	"github.com/scalesql/popmaint/internal/zerr"
-)
-
-type Engine struct {
-	logger lx.Logger
-	st     state.Stater
-	start  time.Time
-	JobID  string
-	Plan   config.Plan
-}
-
-func NewEngine(logger lx.Logger, plan config.Plan, st state.Stater) Engine {
-	engine := Engine{
-		logger: logger,
-		st:     st,
-		start:  time.Now(),
-		Plan:   plan,
-	}
-	return engine
-}
-
-func (engine *Engine) runPlan(ctx context.Context, noexec bool) int {
-	// TODO sort the plan entries and run in order
-	// use participle to get all the sections in order
-	return engine.runCheckDB(ctx, noexec)
-}
-
-const (
-	ActionCheckdb = "checkdb"
-	ActionBackup  = "backup"
 )
 
 func (engine *Engine) runCheckDB(ctx context.Context, noexec bool) int {
