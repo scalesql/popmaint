@@ -123,9 +123,11 @@ out:
 					// if the context is canceled, send a message on the channel so we don't block
 					break out // there is a send down below
 				}
-				// log the error and keep going
-				mon.log.Error(fmt.Errorf("getblocking: %w", err).Error())
-				continue
+				// if there is an erro getting blocking, kill the whole thing and return
+				// likely the server restarted or disconnected or something
+				// just exit and live to fight another day
+				mon.ch <- Result{Err: fmt.Errorf("getblocking: %w", err), Success: false, Source: "monitor", Sessions: sessions}
+				return
 			}
 
 			if len(sessions) <= 1 {
