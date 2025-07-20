@@ -13,6 +13,7 @@ const (
 	ActionCheckdb       = "checkdb"
 	ActionBackupHistory = "backup_history"
 	ActionDBMailHistory = "dbmail_history"
+	ActionAgentHistory  = "agent_history"
 )
 
 // Engine is the main application engine that runs the maintenance plan
@@ -42,6 +43,15 @@ func (engine *Engine) runPlan(ctx context.Context, noexec bool) int {
 	// this also catches negative retentions
 	if engine.Plan.BackupHistory.RetainDays > 0 {
 		r1 := engine.runBackupHistory(ctx, noexec)
+		if r1 > result {
+			result = r1
+		}
+	}
+
+	// only run if configured
+	// this also catches negative retentions
+	if engine.Plan.AgentHistory.RetainDays > 0 {
+		r1 := engine.runAgentHistory(ctx, noexec)
 		if r1 > result {
 			result = r1
 		}
