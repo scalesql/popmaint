@@ -39,6 +39,9 @@ type Plan struct {
 	BackupHistory struct {
 		RetainDays int `toml:"retain_days" json:"retain_days"`
 	} `toml:"backup_history" json:"backup_history"`
+	DBMailHistory struct {
+		RetainDays int `toml:"retain_days" json:"retain_days"`
+	} `toml:"dbmail_history" json:"dbmail_history"`
 }
 
 func ReadPlan(name string) (Plan, error) {
