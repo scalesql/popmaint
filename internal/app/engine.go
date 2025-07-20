@@ -37,7 +37,13 @@ func NewEngine(logger lx.Logger, plan config.Plan, st state.Stater) Engine {
 
 func (engine *Engine) runPlan(ctx context.Context, noexec bool) int {
 	// TODO sort the plan actions and run in order
-	result := engine.runCheckDB(ctx, noexec)
+	var result int
+	if engine.Plan.CheckDBPresent {
+		r1 := engine.runCheckDB(ctx, noexec)
+		if r1 > result {
+			result = r1
+		}
+	}
 
 	// only run if configured
 	// this also catches negative retentions

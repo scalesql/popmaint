@@ -6,12 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/pelletier/go-toml/v2"
 )
-
-type Duration time.Duration
 
 type Plan struct {
 	Name                string
@@ -22,7 +19,8 @@ type Plan struct {
 	Log                 struct {
 		Level string `toml:"level"`
 	} `toml:"log"`
-	CheckDB struct {
+	CheckDBPresent bool // Indicates the TOML file has a "[checkdb]" section
+	CheckDB        struct {
 		TimeLimit             Duration `toml:"time_limit" json:"-"`
 		StatementTimeout      Duration `toml:"statement_timeout" json:"-"`
 		NoIndex               bool     `toml:"no_index" json:"no_index"`
@@ -53,13 +51,24 @@ func ReadPlan(name string) (Plan, error) {
 	fileName := fmt.Sprintf("%s.toml", name)
 	fileName = filepath.Join(".", "plans", fileName)
 	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
-		//return plan, err
 		return plan, fmt.Errorf("plan file not found: %s", fileName)
 	}
 	bb, err := os.ReadFile(fileName)
 	if err != nil {
 		return plan, err
 	}
+	// unmarshal to map[string]any to check for a checkdb section
+	// checkdb does not have any required fields
+	fields := make(map[string]any)
+	err = toml.Unmarshal(bb, &fields)
+	if err != nil {
+		return plan, err
+	}
+	_, ok := fields["checkdb"]
+	if ok {
+		plan.CheckDBPresent = true
+	}
+
 	err = toml.Unmarshal(bb, &plan)
 	if err != nil {
 		return plan, err
@@ -165,18 +174,4 @@ func (p Plan) maxdopCeiling(serverCores, serverMaxdop int) int {
 		ceiling = 1
 	}
 	return ceiling
-}
-
-func (d *Duration) UnmarshalText(b []byte) error {
-	x, err := time.ParseDuration(string(b))
-	if err != nil {
-		return err
-	}
-	*d = Duration(x)
-	return nil
-}
-
-func (d Duration) String() string {
-	dur := time.Duration(d)
-	return dur.String()
 }
