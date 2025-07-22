@@ -51,19 +51,6 @@ func (st *DBState) GetLastCheckDBDate(db mssqlz.Database) (time.Time, bool, erro
 	return tm, false, err // there was an actual error
 }
 
-// checkdblog represents a record in the dbo.checkdb_log table
-type checkdblog struct {
-	LogID        int64     `db:"log_id"`
-	PlanName     string    `db:"plan_name"`
-	DomainName   string    `db:"domain_name"`
-	ServerName   string    `db:"server_name"`
-	DatabaseName string    `db:"database_name"`
-	CompletedAt  time.Time `db:"completed_at"`
-	DurationSec  int32     `db:"duration_sec"`
-	DataMB       int64     `db:"data_mb"`
-	Maxdop       int32     `db:"maxdop"`
-}
-
 func (st *DBState) LogCheckDB(plan config.Plan, jobid string, db mssqlz.Database, dur time.Duration) error {
 	m := make(map[string]any)
 	m["plan_name"] = plan.Name
@@ -74,13 +61,33 @@ func (st *DBState) LogCheckDB(plan config.Plan, jobid string, db mssqlz.Database
 	m["completed_at"] = time.Now()
 	m["duration_sec"] = int32(dur.Seconds())
 	m["data_mb"] = int64(db.DatabaseMB)
+	m["no_index"] = plan.CheckDB.NoIndex
+	m["physical_only"] = plan.CheckDB.PhysicalOnly
+	m["extended_logical_checks"] = plan.CheckDB.ExtendedLogicalChecks
+	m["data_purity"] = plan.CheckDB.DataPurity
+
+	// Recalculate the maxdop we used
+	// It may have been better to pass the actual value around
+	// But this seemed cleaner
+	maxdop, err := plan.MaxDop(db.Cores, db.Maxdop)
+	if err != nil {
+		return err
+	}
+
+	m["server_cores"] = db.Cores
+	m["server_maxdop"] = db.Maxdop
+	m["stmt_maxdop"] = maxdop
 
 	query := `
         INSERT INTO dbo.checkdb_log (
-            		plan_name, job_id, domain_name, server_name, database_name, completed_at, duration_sec, data_mb) 
-			VALUES (:plan_name, :job_id, :domain_name, :server_name, :database_name, :completed_at, :duration_sec, :data_mb);
+            		plan_name, job_id, domain_name, server_name, database_name, completed_at, duration_sec, data_mb
+					, no_index, physical_only, extended_logical_checks, data_purity
+					, server_cores, server_maxdop, stmt_maxdop) 
+			VALUES (:plan_name, :job_id, :domain_name, :server_name, :database_name, :completed_at, :duration_sec, :data_mb
+				, :no_index, :physical_only, :extended_logical_checks, :data_purity
+				, :server_cores, :server_maxdop, :stmt_maxdop);
     `
 	pool := sqlx.NewDb(st.pool, "sqlserver")
-	_, err := pool.NamedExec(query, m)
+	_, err = pool.NamedExec(query, m)
 	return err
 }
