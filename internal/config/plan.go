@@ -14,8 +14,8 @@ type Plan struct {
 	Name                string
 	Servers             []string `toml:"servers"`
 	MaxDopCores         int      `toml:"maxdop_cores"`
-	MaxDopPercent       int      `toml:"maxdop_pct"`
-	MaxDopPercentMaxDop int      `toml:"maxdop_pct_maxdop"`
+	MaxDopPercent       int      `toml:"maxdop_percent"`
+	MaxDopPercentMaxDop int      `toml:"maxdop_percent_maxdop"`
 	Log                 struct {
 		Level string `toml:"level"`
 	} `toml:"log"`

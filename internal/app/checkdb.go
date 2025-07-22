@@ -137,21 +137,6 @@ func (engine *Engine) runCheckDB(ctx context.Context, noexec bool) int {
 			"checkdb.last_dbcc", db.LastCheckDB.Format(time.RFC3339),
 		)
 
-		// get the estimated tempdb space
-		// I'm not sure how useful this is
-		// estimatePlan := plan
-		// estimatePlan.CheckDB.EstimateOnly = true
-		// aw := checkdbwriter.New()
-		// err = maint.CheckDB(ctx, child, db.FQDN, db, estimatePlan, false)
-		// if err != nil {
-		// 	child.Error(fmt.Errorf("CHECKDB estimate: %w", err).Error())
-		// } else {
-		// 	estimatedKB := aw.EstimateKB()
-		// 	if estimatedKB != 0 {
-		// 		db.EstimatedTempdb = estimatedKB / 1024
-		// 	}
-		// }
-		//fmt.Printf("estimate: rows: %d  (%d KB)\n", len(aw.Messages()), aw.EstimateKB())
 		t0 := time.Now()
 		err = maint.CheckDB(ctx, child, db.FQDN, db, plan, noexec)
 		if err != nil {
@@ -159,13 +144,6 @@ func (engine *Engine) runCheckDB(ctx context.Context, noexec bool) int {
 			exitCode = 1
 			child.Error(fmt.Sprintf("CHECKDB: %s: %s", db.ServerName, err.Error()))
 
-			// get the root error
-			// var sqlerr mssql.Error
-			// if errors.As(err, &sqlerr) {
-			// 	fmt.Printf("sqlerr: %v\n", sqlerr)
-			// 	fmt.Println("sqlerr:", len(sqlerr.All))
-			// 	fmt.Println("sqlerr:", sqlerr.Number)
-			// }
 			continue // so we don't set the state
 		}
 		if !noexec { // if we really did it, save it
@@ -174,7 +152,6 @@ func (engine *Engine) runCheckDB(ctx context.Context, noexec bool) int {
 				child.Error(fmt.Errorf("CHECKDB: setlastcheckdb: %w", err).Error())
 				exitCode = 1
 			}
-			// TODO Log the run time for this: FQDN, server, database, size, duration (rounded to second)
 			if !plan.CheckDB.EstimateOnly {
 				child.Info(fmt.Sprintf("CHECKDB: %s.%s size_mb=%d  duration=%s", db.ServerName, db.DatabaseName, db.DatabaseMB, time.Since(t0).Round(1*time.Second)),
 					"size_mb", db.DatabaseMB,
