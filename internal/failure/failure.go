@@ -33,7 +33,7 @@ func HandlePanic(hash, built string) {
 // WriteFile generates a time stamped file in the EXE dir
 // It is primarily used to handle panics
 // It tries to write in the EXE directory but fails back to system32
-// prefix is used to build the file name: isitsql_prefix_ymd_hms.txt
+// prefix is used to build the file name: popmaint_prefix_ymd_hms.txt
 func WriteFile(prefix, body string) {
 	if prefix == "" {
 		prefix = "unknown"
@@ -59,42 +59,3 @@ func WriteFile(prefix, body string) {
 	}
 	os.Exit(3)
 }
-
-// // WritePProf writes various PPROF profiles.
-// func WritePProf() {
-// 	ts := time.Now().Format("20060102_030405")
-// 	var heapFile string
-// 	format := 0
-// 	heapFile = fmt.Sprintf("isitsql_heap_%s.pprof.pb.gz", ts)
-
-// 	ex, err := os.Executable()
-// 	if err != nil {
-// 		// if error isn't nil, just write where ever we can (system32 probably)
-// 		//_ = os.WriteFile(syspaniclog, []byte(body), 0644)
-// 		f, err := os.Create(heapFile)
-// 		if err != nil {
-// 			logrus.Error(errors.Wrap(err, "writepprof: os.create"))
-// 			return
-// 		}
-// 		defer f.Close()
-// 		logrus.Infof("pprof: %s", heapFile)
-// 		err = pprof.Lookup("heap").WriteTo(f, format)
-// 		if err != nil {
-// 			logrus.Error(errors.Wrap(err, "pprof.writeto"))
-// 		}
-// 		return
-// 	}
-// 	// write to the EXE directory
-// 	heapFile = filepath.Join(filepath.Dir(ex), heapFile)
-// 	f, err := os.Create(heapFile)
-// 	if err != nil {
-// 		logrus.Error(errors.Wrap(err, "writepprof: os.create"))
-// 		return
-// 	}
-// 	defer f.Close()
-// 	logrus.Infof("pprof: %s", heapFile)
-// 	err = pprof.Lookup("heap").WriteTo(f, format)
-// 	if err != nil {
-// 		logrus.Error(errors.Wrap(err, "pprof.writeto"))
-// 	}
-// }
