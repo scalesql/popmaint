@@ -26,11 +26,11 @@ Usage: `popmaint -flags plan_name`
 * `plan_name` - Name of the plan to run. Do not include the `.toml` extension.
 * `-noexec` 
 * `-version`
-* `-exit #` - Run and exit with this code.  If an error is encountered, the app exits with the non-zero code.  This is for testing how your job scheduler responds to this.
+* `-exit #` - Run and exit with this code.  If an error is encountered, the app will exit with a non-zero code.  This is for testing how your job scheduler responds to this.
 * `-log-level` *level* - where *level* is one of `trace`, `debug`, `verbose`, `info`, `warn`, or `error`
 
 
-Application Configuration (TOML)
+Application Configuration (popmaint.toml)
 ------------------------------------------------------------------
 ```toml
 [log]
@@ -52,7 +52,7 @@ For the `username` and `password`, environment variables can be substituted with
 
 Plan Configuration (TOML)
 ------------------------------------------------------------------
-Plan files should be stored in the `plans` folder and have a `toml` extension.
+Plan files are stored in the `plans` folder and have a `toml` extension.
 
 ```toml
 servers = [
@@ -67,8 +67,11 @@ maxdop_pct_maxdop = 0
 # level = "debug"
 
 [checkdb]
-time_limit = "60m"  # don't start new statements
+time_limit = "60m"       # don't start new statements after this time
 statement_timeout = "3h" # cancel a running statement
+blocking_timeout = "1s"  # cancel after 1s if we are blocking
+blocked_timeout = "1m"   # wait this long if we are being blocked
+
 included = ["master", "msdb", "corrupt_db"]
 excluded = ["otherdb"]
 min_interval_days = 0
@@ -79,11 +82,35 @@ physical_only = true
 estimate_only = false   
 extended_logical_checks = false 
 data_purity = false 
+
+[backup_history]
+retain_days = 90
+statement_timeout = "1m"
+blocking_timeout = "1s"
+blocked_timeout = "5m"
+
+[dbmail_history]
+retain_days = 365
+statement_timeout = "1m"
+blocking_timeout = "1s"
+blocked_timeout = "5m"
+
+[agent_history]
+retain_days = 90
+statement_timeout = "1m"
+blocking_timeout = "1s"
+blocked_timeout = "5m"
+
 ```
 
+* At least one server is required
+* The history cleanups only require the number of days to retain
+
 ### Time Limits
-* `time_limit` is the time after which no new CHECKDB statement will start.
-*  `statement_timeout` is the duration after which a CHECKDB statement should be cancelled.  This is typically much higher than `time_limt`. It typically handles stuck processes or being blocked.  This should be higher than CHECKDB will ever run normally.
+* `time_limit` is the time after which no new CHECKDB statement will start.  This is a soft limit.
+*  `statement_timeout` is the duration after which a statement should be cancelled.  This is typically much higher than `time_limt`. It typically handles stuck processes or disconnected sessions.  This should be higher than CHECKDB will ever run normally.
+* `blocking_timeout` is the amount of time to wait if we are blocking something else.  This is polled every second.  __This defaults to 1 second.__
+* `blocked_timeout` is the amount of time to wait if we are being blocked.  This is polled every second. __This defaults to 5 seconds.__
 
 ### MAXDOP Settings
 There are three settings that control the MAXDOP that CHECKDB uses.

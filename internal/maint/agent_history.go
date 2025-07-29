@@ -27,7 +27,8 @@ func AgentHistory(ctx context.Context, logger lockmon.ExecLogger, server mssqlz.
 
 	// run the command
 	if !noexec {
-		result := lockmon.ExecMonitor(ctx, logger, pool, stmt, time.Duration(1*time.Hour))
+		result := lockmon.ExecMonitor(ctx, logger, pool, stmt, time.Duration(plan.AgentHistory.StatementTimeout),
+			time.Duration(plan.AgentHistory.BlockingTimeout), time.Duration(plan.AgentHistory.BlockedTimeout))
 		if result.Sessions != nil {
 			if len(result.Sessions) > 0 {
 				for _, s := range result.Sessions {

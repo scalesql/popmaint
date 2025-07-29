@@ -27,7 +27,8 @@ func BackupHistory(ctx context.Context, logger lockmon.ExecLogger, server mssqlz
 
 	// run the command
 	if !noexec {
-		result := lockmon.ExecMonitor(ctx, logger, pool, stmt, time.Duration(1*time.Hour))
+		result := lockmon.ExecMonitor(ctx, logger, pool, stmt, time.Duration(plan.BackupHistory.StatementTimeout),
+			time.Duration(plan.BackupHistory.BlockingTimeout), time.Duration(plan.BackupHistory.BlockedTimeout))
 		if result.Sessions != nil {
 			if len(result.Sessions) > 0 {
 				for _, s := range result.Sessions {

@@ -47,7 +47,7 @@ type monitor struct {
 // This will log any errors in the SQL that runs.
 // It will return blocking errors, or errors detecting blocking.
 // It will also set a flag that it encountered an error.
-func ExecMonitor(ctx context.Context, log ExecLogger, pool *sql.DB, stmt string, timeout time.Duration) Result {
+func ExecMonitor(ctx context.Context, log ExecLogger, pool *sql.DB, stmt string, timeout, blocking, blocked time.Duration) Result {
 	if pool == nil {
 		return Result{Err: fmt.Errorf("pool is nil")}
 	}
@@ -94,7 +94,7 @@ func ExecMonitor(ctx context.Context, log ExecLogger, pool *sql.DB, stmt string,
 	}
 
 	go mon.runStmt(ctx, conn, stmt, log)
-	go mon.runMonitor(ctx)
+	go mon.runMonitor(ctx, blocking, blocked)
 
 	// get the first result. this is all we really care about
 	// this will be the blocking monitor or the actual SQL result
@@ -107,7 +107,7 @@ func ExecMonitor(ctx context.Context, log ExecLogger, pool *sql.DB, stmt string,
 	return results
 }
 
-func (mon *monitor) runMonitor(ctx context.Context) {
+func (mon *monitor) runMonitor(ctx context.Context, blocking, blocked time.Duration) {
 	defer failure.HandlePanic(build.Commit(), build.Built().Format(time.RFC3339))
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
@@ -117,24 +117,24 @@ out:
 		case <-ctx.Done():
 			break out // there is a send down below
 		case <-ticker.C:
-			sessions, err := getBlocking(ctx, mon.pool, mon.spid)
+			sessions, err := getBlocking(ctx, mon.pool, mon.spid, blocking, blocked)
 			if err != nil {
 				if errors.Is(err, context.Canceled) {
 					// if the context is canceled, send a message on the channel so we don't block
 					break out // there is a send down below
 				}
-				// if there is an erro getting blocking, kill the whole thing and return
+				// if there is an error getting blocking, kill the whole thing and return
 				// likely the server restarted or disconnected or something
 				// just exit and live to fight another day
 				mon.ch <- Result{Err: fmt.Errorf("getblocking: %w", err), Success: false, Source: "monitor", Sessions: sessions}
 				return
 			}
 
-			if len(sessions) <= 1 {
+			if len(sessions) == 0 {
 				continue // no blocking, only our session
 			}
 
-			// len(sessions) > 1 so there is blocking
+			// len(sessions) > 0 so there is blocking
 			mon.ch <- Result{Err: ErrBlocking, Success: false, Source: "monitor", Sessions: sessions}
 			return
 		}
@@ -254,9 +254,17 @@ func getSessionID(ctx context.Context, conn *sql.Conn) (int16, error) {
 	return spid, err
 }
 
-func getBlocking(ctx context.Context, pool *sql.DB, spid int16) ([]Session, error) {
+func getBlocking(ctx context.Context, pool *sql.DB, spid int16, blocking, blocked time.Duration) ([]Session, error) {
 	sessions := make([]Session, 0)
-	// This should always return 1 or more sessions
+
+	// set default values for blocking and blocked
+	if blocking == 0 {
+		blocking = time.Duration(1 * time.Second)
+	}
+	if blocked == 0 {
+		blocked = time.Duration(5 * time.Second)
+	}
+
 	rows, err := pool.QueryContext(ctx, `
 		SELECT
 			r.session_id,
@@ -270,10 +278,9 @@ func getBlocking(ctx context.Context, pool *sql.DB, spid int16) ([]Session, erro
 				END - r.statement_start_offset)/2) + 1), '') AS statement_text   
 		FROM sys.dm_exec_requests r
 		CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) h
-		WHERE 	(wait_time > 1000 AND blocking_session_id = @spid) -- we are blocking
-		OR 		(wait_time > 5000 AND session_id = @spid and blocking_session_id IS NOT NULL AND blocking_session_id <> 0) -- we are blocked
-		OR		session_id = @spid ; -- and this session
-	`, sql.Named("spid", spid))
+		WHERE 	(wait_time > @blocking AND blocking_session_id = @spid) -- we are blocking
+		OR 		(wait_time > @blocked AND session_id = @spid and blocking_session_id IS NOT NULL AND blocking_session_id <> 0) -- we are blocked
+	`, sql.Named("spid", spid), sql.Named("blocking", blocking.Milliseconds()), sql.Named("blocked", blocked.Milliseconds()))
 	if err != nil {
 		return sessions, err
 	}

@@ -28,9 +28,17 @@ func (nilwriter) Trace(msg string, args ...any) {}
 type consoleWriter struct{}
 
 func (consoleWriter) Error(msg string, args ...any) {
-	fmt.Printf("%s\n", msg)
+	fmt.Printf("ERR:  %s\n", msg)
 }
-func (consoleWriter) Warn(msg string, args ...any)  {}
-func (consoleWriter) Info(msg string, args ...any)  {}
-func (consoleWriter) Debug(msg string, args ...any) {}
-func (consoleWriter) Trace(msg string, args ...any) {}
+func (consoleWriter) Warn(msg string, args ...any) {
+	fmt.Printf("WARN: %s\n", msg)
+}
+func (consoleWriter) Info(msg string, args ...any) {
+	fmt.Printf("INFO: %s\n", msg)
+}
+func (consoleWriter) Debug(msg string, args ...any) {
+	fmt.Printf("DBG:  %s\n", msg)
+}
+func (consoleWriter) Trace(msg string, args ...any) {
+	fmt.Printf("TRC:  %s\n", msg)
+}

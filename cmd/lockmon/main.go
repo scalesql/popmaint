@@ -29,7 +29,7 @@ func main() {
 	}
 	defer pool.Close()
 	// lockmon.TraceLogging = true // enable tracing
-	r := lockmon.ExecMonitor(ctx, log, pool, stmt, time.Duration(0))
+	r := lockmon.ExecMonitor(ctx, log, pool, stmt, time.Duration(0), time.Duration(0), time.Duration(0))
 	if r.Err != nil {
 		log.Error(r.Err.Error())
 		return

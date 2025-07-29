@@ -23,6 +23,8 @@ type Plan struct {
 	CheckDB        struct {
 		TimeLimit             Duration `toml:"time_limit" json:"-"`
 		StatementTimeout      Duration `toml:"statement_timeout" json:"-"`
+		BlockingTimeout       Duration `toml:"blocking_timeout" json:"-"`
+		BlockedTimeout        Duration `toml:"blocked_timeout" json:"-"`
 		NoIndex               bool     `toml:"no_index" json:"no_index"`
 		MaxSizeMB             int      `toml:"max_size_mb" json:"-"`
 		PhysicalOnly          bool     `toml:"physical_only" json:"physical_only"`
@@ -35,13 +37,22 @@ type Plan struct {
 		MinIntervalDays       int      `toml:"min_interval_days" json:"-"`
 	} `toml:"checkdb" json:"checkdb"`
 	BackupHistory struct {
-		RetainDays int `toml:"retain_days" json:"retain_days"`
+		RetainDays       int      `toml:"retain_days" json:"retain_days"`
+		StatementTimeout Duration `toml:"statement_timeout" json:"-"`
+		BlockingTimeout  Duration `toml:"blocking_timeout" json:"-"`
+		BlockedTimeout   Duration `toml:"blocked_timeout" json:"-"`
 	} `toml:"backup_history" json:"backup_history"`
 	DBMailHistory struct {
-		RetainDays int `toml:"retain_days" json:"retain_days"`
+		RetainDays       int      `toml:"retain_days" json:"retain_days"`
+		StatementTimeout Duration `toml:"statement_timeout" json:"-"`
+		BlockingTimeout  Duration `toml:"blocking_timeout" json:"-"`
+		BlockedTimeout   Duration `toml:"blocked_timeout" json:"-"`
 	} `toml:"dbmail_history" json:"dbmail_history"`
 	AgentHistory struct {
-		RetainDays int `toml:"retain_days" json:"retain_days"`
+		RetainDays       int      `toml:"retain_days" json:"retain_days"`
+		StatementTimeout Duration `toml:"statement_timeout" json:"-"`
+		BlockingTimeout  Duration `toml:"blocking_timeout" json:"-"`
+		BlockedTimeout   Duration `toml:"blocked_timeout" json:"-"`
 	} `toml:"agent_history" json:"agent_history"`
 }
 
