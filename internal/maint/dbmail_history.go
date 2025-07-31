@@ -21,7 +21,11 @@ func DBMailHistory(ctx context.Context, logger lockmon.ExecLogger, server mssqlz
 	defer pool.Close()
 
 	// build the command
-	stmt := fmt.Sprintf("DECLARE @limit DATE = DATEADD(dd, -%d, GETDATE()); EXEC msdb.dbo.sysmail_delete_log_sp @logged_before = @limit;", plan.DBMailHistory.RetainDays)
+	stmt := fmt.Sprintf(`
+		DECLARE @limit DATE = DATEADD(dd, -%d, GETDATE()); 
+		EXEC msdb.dbo.sysmail_delete_log_sp @logged_before = @limit;
+		EXEC msdb.dbo.sysmail_delete_mailitems_sp	@sent_before = @limit;`,
+		plan.DBMailHistory.RetainDays)
 	msg := fmt.Sprintf("%s: %s", server.ServerName, stmt)
 	logger.Debug(msg, "server", server.ServerName)
 
