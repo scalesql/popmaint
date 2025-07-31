@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pelletier/go-toml/v2"
 	"github.com/scalesql/popmaint/internal/build"
 	"github.com/scalesql/popmaint/internal/config"
 	"github.com/scalesql/popmaint/internal/failure"
@@ -108,6 +109,10 @@ func Run(cmdLine CommandLine, getenv func(string) string) int {
 	plan, err := config.ReadPlan(cmdLine.Plan)
 	if err != nil {
 		logger.Error(fmt.Errorf("config.readplan: %w", err).Error())
+		var details *toml.StrictMissingError
+		if errors.As(err, &details) {
+			logger.Error(fmt.Sprintf("config.readplan: unknown field:\n%s", details.String()))
+		}
 		return 1
 	}
 

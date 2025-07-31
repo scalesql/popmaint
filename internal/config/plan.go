@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -80,10 +81,14 @@ func ReadPlan(name string) (Plan, error) {
 		plan.CheckDBPresent = true
 	}
 
-	err = toml.Unmarshal(bb, &plan)
+	rdr := bytes.NewReader(bb)
+	d := toml.NewDecoder(rdr)
+	d.DisallowUnknownFields()
+	err = d.Decode(&plan)
 	if err != nil {
 		return plan, err
 	}
+
 	if plan.MaxDopCores < 0 {
 		return Plan{}, fmt.Errorf("invalid maxdop_cores: %d", plan.MaxDopCores)
 	}
