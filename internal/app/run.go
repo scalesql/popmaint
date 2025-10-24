@@ -22,7 +22,7 @@ var ErrRunError = errors.New("error running plan")
 
 func Run(cmdLine CommandLine, getenv func(string) string) int {
 	defer failure.HandlePanic(build.Commit(), build.Built().Format(time.RFC3339))
-	jobid := fmt.Sprintf("%s_%s", time.Now().Format("20060102_150405"), cmdLine.Plan)
+	jobid := fmt.Sprintf("%s_%s", time.Now().UTC().Format("20060102_150405"), cmdLine.Plan)
 	exename, err := os.Executable()
 	if err != nil {
 		fmt.Println("ERROR", err.Error())
@@ -34,6 +34,7 @@ func Run(cmdLine CommandLine, getenv func(string) string) int {
 	osusername, err := currentUserName()
 	if err != nil {
 		fmt.Println("ERROR", fmt.Errorf("currentUserName: %w", err).Error())
+		return 1
 	}
 	hn, err := os.Hostname()
 	if err != nil {
@@ -41,7 +42,18 @@ func Run(cmdLine CommandLine, getenv func(string) string) int {
 		return 1
 	}
 
-	logger, err := lx.New(jobid, cmdLine.Plan, "popmaint")
+	// Read the app.toml config file
+	appconfig, err := config.ReadConfig(getenv)
+	if err != nil {
+		fmt.Println("ERROR", (fmt.Errorf("config.readconfig: %w", err).Error()))
+		return 1
+	}
+
+	logger, err := lx.New(jobid, cmdLine.Plan,
+		lx.WithPayload("popmaint"),
+		lx.WithLogFolder(appconfig.Log.Folder),
+		lx.WithFileName(appconfig.Log.FileNameTemplate),
+	)
 	if err != nil {
 		fmt.Println("ERROR", err.Error())
 		return 1
@@ -53,6 +65,7 @@ func Run(cmdLine CommandLine, getenv func(string) string) int {
 		}
 	}(logger)
 
+	logger.SetUTC(appconfig.Log.UseUTC)
 	logger.SetFormatJSON(cmdLine.Dev)
 
 	logger.SetCached("exename()", exenameBase)
@@ -60,18 +73,14 @@ func Run(cmdLine CommandLine, getenv func(string) string) int {
 	logger.SetCached("version()", build.Version())
 	logger.SetCached("built()", build.Built().Format(time.RFC3339))
 	logger.SetCached("user()", osusername)
+	logger.SetCached("plan()", cmdLine.Plan)
 
 	logger.AddFields("job_id", jobid)
 	if cmdLine.Dev {
 		logger.AddFields("app.exec.dev", true)
 	}
 
-	// Read the app.toml config file
-	appconfig, err := config.ReadConfig(getenv)
-	if err != nil {
-		logger.Error(fmt.Errorf("config.readconfig: %w", err).Error())
-		return 1
-	}
+	// sets the functions and mappings from the TOML file
 	err = logger.SetMappings(appconfig.Log.Fields)
 	if err != nil {
 		logger.Error(fmt.Errorf("logger.setmappings: %w", err).Error())
@@ -89,17 +98,23 @@ func Run(cmdLine CommandLine, getenv func(string) string) int {
 		"app.exec.host", hn,
 		"app.exec.is_terminal", term.IsTerminal(int(os.Stdout.Fd())),
 	)
+	logger.Info(fmt.Sprintf("log file: %s", logger.LogFileName()))
 	logger.Info(fmt.Sprintf("%s %s (%s) built %s", strings.ToUpper(exenameBase), build.Version(), build.Commit(), build.Built()))
 	msg := fmt.Sprintf("%s on %s as %s", strings.ToUpper(exenameBase), hn, osusername)
+
 	if cmdLine.Dev {
 		msg += fmt.Sprintf("  cmdLine.Dev: %t", cmdLine.Dev)
 	}
 	if cmdLine.NoExec {
 		msg += fmt.Sprintf("  cmdLine.NoExec: %t", cmdLine.NoExec)
 	}
-	logger.Info(msg, "log_retention_days", appconfig.Log.LogRetentionDays)
+	logger.Info(msg, "retain_days", appconfig.Log.RetainDays)
 
-	err = lx.CleanUpLogs(appconfig.Log.LogRetentionDays, "json", "*.ndjson")
+	// todo - only log files if enabled?
+	// log_to_file = true
+	// only clean up log files if writing to the default location?
+	// purge files how?
+	err = lx.CleanUpLogs(appconfig.Log.RetainDays, appconfig.Log.Folder, appconfig.Log.PurgeGlob)
 	if err != nil {
 		logger.Error(fmt.Errorf("lx.cleanuplogs: %w", err).Error())
 		return 1

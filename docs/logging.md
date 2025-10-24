@@ -1,5 +1,8 @@
-Logging
-=======
+Logging Design
+==============
+
+**NOTE: This document is for design/planning purposes.  Please see the Logging section in /docs/DOCS.md for loggind documentation.**
+
 * All logs are under the `popmaint` parent.
 * Consider an "id" bucket that is the server, database, object, etc.
 

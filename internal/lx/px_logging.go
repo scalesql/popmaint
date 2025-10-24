@@ -60,6 +60,9 @@ func (px PX) LogMap(level LogLevel, msg string, m map[string]any) {
 
 func (px PX) log(level LogLevel, msg string, fields map[string]any) {
 	now := time.Now()
+	if px.useUTC {
+		now = now.UTC()
+	}
 	px.logConsole(now, level, msg)
 
 	// start with the fields from the logger

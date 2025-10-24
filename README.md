@@ -45,7 +45,14 @@ This will run DBCC against the system databases.
 
 Releases
 --------------------------------------------------------------------
-### vNext (June 2025)
+### 0.23 (Internal)
+* JobID's are now in UTC
+* Improved logging
+* Added Advanced logging mode
+    * Added support for log file location, file name templates, and UTC times
+* Log file clean up only runs if you put a retention days value in
+
+### (Internal)
 * Improved MAXDOP calculation
 * Improved logging
 * Fixed formatting on the documentation

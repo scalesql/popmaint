@@ -126,7 +126,7 @@ func TestApplyFuncs(t *testing.T) {
 	hostname, err := os.Hostname()
 	require.NoError(err)
 	//now := time.Now()
-	px, err := setup("xxxx_jobid", "payload")
+	px, err := setup("xxxx_jobid")
 	require.NoError(err)
 	px.mappings = []KV{
 		{"ab", 37},

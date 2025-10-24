@@ -8,6 +8,13 @@ Development Notes
 * The SQL Server for testing is set by the `POPMAINT_DBSERVER` environment variable
 * The GOOSE environment variables are needed to run `goose` manually
 
+I use a `test.cmd` file that looks like this:
+```bat
+@ECHO OFF 
+SET POPMAINT_DBSERVER=D40\SQL2016
+go test -count=1 ./... 
+```
+
 ### .env File
 ```
 GOOSE_DRIVER=sqlserver

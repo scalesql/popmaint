@@ -9,12 +9,15 @@ import (
 
 // PX is the parent structure for logging
 type PX struct {
-	mu       *sync.Mutex
-	console  io.Writer
-	jsonFile io.WriteCloser
-	level    LogLevel
-	jobid    string // yyyymmdd_hhmmss_plan
-	payload  string // field name of the payload
+	mu             *sync.Mutex
+	console        io.Writer
+	logFolder      string
+	logFilePattern string
+	jsonFile       io.WriteCloser
+	logFileName    string
+	level          LogLevel
+	jobid          string // yyyymmdd_hhmmss_plan
+	payload        string // field name of the payload
 
 	// mappings are the default things we read from a config
 	// file and apply to all things we log
@@ -31,32 +34,54 @@ type PX struct {
 	fields map[string]any
 
 	formatJSON bool // writes formatted JSON for DEV
+	useUTC     bool // log in UTC instead of local time
 }
 
 // New returns a new logger.
 // jobid is 20240813_055211_plan1
-func New(jobid, plan, payload string) (PX, error) {
-	//now := time.Now()
-	px, err := setup(jobid, payload)
+func New(jobid, plan string, opts ...Option) (PX, error) {
+	px, err := setup(jobid)
 	if err != nil {
 		return PX{}, err
 	}
-	// get the log file
-	jsonFile, err := getLogFile(jobid, "ndjson")
+	for _, opt := range opts {
+		opt(&px)
+	}
+	if px.payload == "" {
+		px.payload = "popmaint"
+	}
+	err = px.SetLogFile(plan)
 	if err != nil {
 		return PX{}, err
 	}
-	px.jsonFile = jsonFile
 	return px, nil
 }
 
+type Option func(*PX)
+
+func WithPayload(payload string) Option {
+	return func(px *PX) {
+		px.payload = payload
+	}
+}
+
+func WithLogFolder(folder string) Option {
+	return func(px *PX) {
+		px.logFolder = folder
+	}
+}
+
+func WithFileName(name string) Option {
+	return func(px *PX) {
+		px.logFilePattern = name
+	}
+}
+
 // setup defaults for the PX object
-func setup(jobid, payload string) (PX, error) {
-	//jobid := fmt.Sprintf("%s_%s", now.Format("20060102_150405"), plan)
+func setup(jobid string) (PX, error) {
 	px := PX{
 		mu:       &sync.Mutex{},
 		console:  os.Stdout,
-		payload:  payload,
 		jobid:    jobid,
 		level:    LevelInfo,
 		cached:   make(map[string]any),
@@ -72,6 +97,13 @@ func setup(jobid, payload string) (PX, error) {
 	px.cached["pid()"] = os.Getpid()
 
 	return px, nil
+}
+
+// SetUTC sets the flag to use UTC
+func (px *PX) SetUTC(utc bool) {
+	px.mu.Lock()
+	defer px.mu.Unlock()
+	px.useUTC = utc
 }
 
 // AddFields adds default fields to the logger.
@@ -117,4 +149,11 @@ func (px *PX) SetFormatJSON(format bool) {
 	px.mu.Lock()
 	defer px.mu.Unlock()
 	px.formatJSON = format
+}
+
+// LogFileName returns the name of the file we are writing to
+func (px *PX) LogFileName() string {
+	px.mu.Lock()
+	defer px.mu.Unlock()
+	return px.logFileName
 }

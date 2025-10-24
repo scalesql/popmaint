@@ -8,7 +8,7 @@ import (
 
 func TestSetup(t *testing.T) {
 	require := require.New(t)
-	lx, err := setup("xxx_jobid", "payload")
+	lx, err := setup("xxx_jobid")
 	require.NotNil(lx)
 	require.NoError(err)
 }

@@ -10,7 +10,12 @@ import (
 type AppConfig struct {
 	Log struct {
 		Level            string         `toml:"level"`
-		LogRetentionDays int            `toml:"retention_days"`
+		Advanced         bool           `toml:"advanced"`
+		Folder           string         `toml:"folder"`
+		FileNameTemplate string         `toml:"file_name_template"`
+		RetainDays       int            `toml:"retain_days"`
+		PurgeGlob        string         `toml:"purge_glob"`
+		UseUTC           bool           `toml:"use_utc"`
 		Fields           map[string]any `toml:"fields"`
 	} `toml:"log"`
 	Repository struct {
@@ -26,7 +31,6 @@ type AppConfig struct {
 func ReadConfig(getenv func(string) string) (AppConfig, error) {
 	if _, err := os.Stat("popmaint.toml"); errors.Is(err, os.ErrNotExist) {
 		appconfig := AppConfig{}
-		appconfig.Log.LogRetentionDays = 30
 		return appconfig, nil
 	}
 	bb, err := os.ReadFile("popmaint.toml")
@@ -38,7 +42,52 @@ func ReadConfig(getenv func(string) string) (AppConfig, error) {
 	if err != nil {
 		return AppConfig{}, err
 	}
+	err = appconfig.setlogsettings()
+	if err != nil {
+		return AppConfig{}, err
+	}
 	appconfig.Repository.UserName = os.Expand(appconfig.Repository.UserName, getenv)
 	appconfig.Repository.Password = os.Expand(appconfig.Repository.Password, getenv)
 	return appconfig, nil
+}
+
+func (ac *AppConfig) setlogsettings() error {
+	if ac.Log.RetainDays < 0 {
+		return errors.New("retain_days must be >= 0")
+	}
+
+	// validate advanced - required fields
+	if ac.Log.Advanced {
+		if ac.Log.Folder == "" {
+			return errors.New("advanced logging requires folder")
+		}
+		if ac.Log.FileNameTemplate == "" {
+			return errors.New("advanced logging requires file_name_template")
+		}
+		if ac.Log.RetainDays > 0 && ac.Log.PurgeGlob == "" {
+			return errors.New("if retain_days > 0, purge_glob required")
+		}
+		return nil
+	}
+	// not advanced (Basic Logging) -- all should be empty
+	if ac.Log.Folder != "" {
+		return errors.New("setting folder requires advanced=true")
+	}
+	if ac.Log.FileNameTemplate != "" {
+		return errors.New("setting log_file_template requires advanced=true")
+	}
+	if ac.Log.RetainDays > 0 {
+		return errors.New("setting retain_days requires advanced=true")
+	}
+	if ac.Log.PurgeGlob != "" {
+		return errors.New("settings purge_glob requires advanced=true")
+	}
+
+	// set defaults
+	ac.Log.Folder = "./logs/json"
+	ac.Log.FileNameTemplate = "{{.job_id}}.ndjson"
+	ac.Log.RetainDays = 30
+	ac.Log.PurgeGlob = "*.ndjson"
+
+	return nil
 }

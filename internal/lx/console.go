@@ -18,7 +18,7 @@ func (cw ConsoleWriter) Close() error {
 }
 
 func NewConsoleLogger() (PX, error) {
-	px, err := setup("jobid", "payload")
+	px, err := setup("jobid")
 	if err != nil {
 		return px, err
 	}
