@@ -1,6 +1,6 @@
 POPMAINT
 ========
-
+POPMAINT is a command-line SQL Server maintenance solution similar to SQL Server Maintenance Plans.  It is based on GIT-friendly configuration files.  **This is currently under active development and EVERYTHING is subject to change.**
 
 Security
 ------------------------------------------------------------------
@@ -105,6 +105,7 @@ blocked_timeout = "5m"
 
 * At least one server is required
 * The history cleanups only require the number of days to retain
+* If you don't put a section in the TOML file, that task is skipped
 
 ### Time Limits
 * `time_limit` is the time after which no new CHECKDB statement will start.  This is a soft limit.
@@ -124,7 +125,7 @@ All these are optional.  If any of these are set, the MAXDOP is set at the lowes
 Basic Logging (JSON)
 ------------------------------------------------------------------
 * PopMaint has two JSON file logging modes.  The default is Basic Logging.
-* The JSON logs are written to `./logs/json` with an extension of `.ndjson`.  The file names are `yyyymmdd_hhmmss_plan.ndjson` in UTC time.
+* JSON logs are written to `./logs/json` with an extension of `.ndjson`.  The file names are `yyyymmdd_hhmmss_plan.ndjson` in UTC time.
 * There are four top-level fields:
     * `time`
     * `level` - DEBUG, INFO, etc.
@@ -145,12 +146,13 @@ Advanced Logging (JSON)
     file_name_template = "{{.job_id}}.ndjson"
     purge_glob = "*.ndjson"
     ```
+* These settings mimic Basic Logging
 
 ### Advanced Logging Notes
 * All fields are required for advanced logging
 * `folder` should be entered as `D:\\Logs\\PopMaint` to correctly handle escaping in TOML.
 * Setting `retain_days` = 0, turns off purging log files
-* `purge_glob` is only required if `retain_days` > 0.  This is the wildcard that will be searched in the log folder.  It filters based on this wildcard and the last write date.
+* `purge_glob` is only required if `retain_days` > 0.  This is the wildcard that will be searched in the log folder.  It purges based on this wildcard and the last write date.
 * `use_utc` is not listed above.  It allows `true` or `false`.  If set to `true`, the time reported in `time` will be in UTC instead of the local time with offset.
     * `true`:   2025-10-23T20:01:54.0277865Z
     * `false`:  2025-10-23T15:01:54.0277865-05:00
@@ -205,11 +207,17 @@ The following functions return values:
 The following functions manipulate the results:
 
 ```toml
-    new.field = "old.field.move()"
-    extra.field = "old.field.copy()"
-    removed.field = "delete()"
+    new.field = "a.b.move()"   # move a.b to new.field
+    extra.field = "a.c.copy()" # copy a.c to extra.field
+    removed.field = "delete()" # delete removed.field
 ```
 
+NOTE: The `log.fields` are a map and not an array so they don't run in order.  This will NOT work consistently.  `f1` may or may not run before `f2`.
+
+```toml
+    f1 = "a.b.move()"  
+    f2 = "f1.move()"
+```
 
 
 

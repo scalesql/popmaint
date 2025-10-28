@@ -76,6 +76,7 @@ func Run(cmdLine CommandLine, getenv func(string) string) int {
 	logger.SetCached("plan()", cmdLine.Plan)
 
 	logger.AddFields("job_id", jobid)
+	logger.AddFields("plan", cmdLine.Plan)
 	if cmdLine.Dev {
 		logger.AddFields("app.exec.dev", true)
 	}

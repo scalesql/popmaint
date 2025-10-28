@@ -14,7 +14,7 @@ Features
 ----------------------------------------
 * Command-line application that supports scheduling through SQL Server Agent or other job scheduling application.  I run it from our central ActiveBatch server.
 * Configuration via GIT-friendly files
-* Log to the console or JSON
+* Log to the console and JSON log files
 * Cancel maintenance tasks if they block other requests
 * Spread load across servers, time, and time zones
 * Track state to resume where it left off and limit load
@@ -27,7 +27,7 @@ Features
 Getting Started
 ---------------
 1. Unzip the files to a local folder
-2. Create `./plans/sample.toml`
+2. Create `./plans/sample.toml`.  This will run DBCC against the system databases.
 
     ```toml
     servers = ["localhost"]
@@ -41,18 +41,16 @@ Getting Started
 3. Run the executable and execute the plan: `popmaint sample`.  This will run as the current user.  It requires `sysadmin` or `db_owner` permissions on these databases.
 4. See `DOCS.html` for further documentation
 
-This will run DBCC against the system databases.
+
 
 Releases
 --------------------------------------------------------------------
-### 0.23 (Internal)
+### 0.33 (Internal)
 * JobID's are now in UTC
 * Improved logging
 * Added Advanced logging mode
     * Added support for log file location, file name templates, and UTC times
-* Log file clean up only runs if you put a retention days value in
-
-### (Internal)
+    * Log file clean up is conditional based on settings
 * Improved MAXDOP calculation
 * Improved logging
 * Fixed formatting on the documentation

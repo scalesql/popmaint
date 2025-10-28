@@ -59,28 +59,28 @@ func (ac *AppConfig) setlogsettings() error {
 	// validate advanced - required fields
 	if ac.Log.Advanced {
 		if ac.Log.Folder == "" {
-			return errors.New("advanced logging requires folder")
+			return errors.New("advanced logging requires log.folder")
 		}
 		if ac.Log.FileNameTemplate == "" {
-			return errors.New("advanced logging requires file_name_template")
+			return errors.New("advanced logging requires log.file_name_template")
 		}
 		if ac.Log.RetainDays > 0 && ac.Log.PurgeGlob == "" {
-			return errors.New("if retain_days > 0, purge_glob required")
+			return errors.New("if retain_days > 0, log.purge_glob required")
 		}
 		return nil
 	}
 	// not advanced (Basic Logging) -- all should be empty
 	if ac.Log.Folder != "" {
-		return errors.New("setting folder requires advanced=true")
+		return errors.New("setting log.folder requires advanced=true")
 	}
 	if ac.Log.FileNameTemplate != "" {
-		return errors.New("setting log_file_template requires advanced=true")
+		return errors.New("setting log.log_file_template requires advanced=true")
 	}
 	if ac.Log.RetainDays > 0 {
-		return errors.New("setting retain_days requires advanced=true")
+		return errors.New("setting log.retain_days requires advanced=true")
 	}
 	if ac.Log.PurgeGlob != "" {
-		return errors.New("settings purge_glob requires advanced=true")
+		return errors.New("settings log.purge_glob requires advanced=true")
 	}
 
 	// set defaults
