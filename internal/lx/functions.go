@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 )
 
 func (px *PX) applyFuncs(m map[string]any) (map[string]any, []error) {
@@ -36,6 +37,8 @@ func (px *PX) applyFuncs(m map[string]any) (map[string]any, []error) {
 			if px.jobid != "" {
 				m[fld.K] = px.jobid
 			}
+		case "now()":
+			m[fld.K] = time.Now().UTC()
 		default: // handle the cached function results
 			if px.cached != nil {
 				cons, ok := px.cached[fn]

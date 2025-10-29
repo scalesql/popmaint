@@ -203,6 +203,7 @@ The following functions return values:
 * `version()` - the version of the executable
 * `jobid()` - the job ID which is `yyyymmdd_hhmmss_plan`
 * `plan()` - the name of the plan
+* `now()` - Current time in UTC
 
 The following functions manipulate the results:
 
