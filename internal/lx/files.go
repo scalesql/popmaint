@@ -67,6 +67,9 @@ func CleanUpLogs(days int, folder, wildcard string) error {
 	if days == 0 {
 		return nil
 	}
+	if wildcard == "" {
+		return nil 
+	}
 	cutoff := time.Now().Add(time.Duration(days*-24) * time.Hour)
 	files, err := filepath.Glob(filepath.Join(folder, wildcard))
 	if err != nil {
