@@ -46,6 +46,7 @@ func (px PX) Printf(format string, v ...any) {
 func (px PX) Log(level LogLevel, msg string, args ...any) {
 	px.mu.Lock()
 	defer px.mu.Unlock()
+	//px.sequence += 1
 	argmap := anys2map("", args...)
 	px.log(level, msg, argmap)
 }
@@ -64,6 +65,9 @@ func (px PX) log(level LogLevel, msg string, fields map[string]any) {
 		now = now.UTC()
 	}
 	px.logConsole(now, level, msg)
+
+	// // add the sequence number
+	fields["log_num"] = atomicLogNumber.Add(1)
 
 	// start with the fields from the logger
 	parms := maps.Clone(px.fields)

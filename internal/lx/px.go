@@ -5,7 +5,12 @@ import (
 	"maps"
 	"os"
 	"sync"
+	"sync/atomic"
 )
+
+// atomicLogNumber is used for line numbers in the JSON file
+// this is used for sorting if the timestamps are identical
+var atomicLogNumber atomic.Uint32
 
 // PX is the parent structure for logging
 type PX struct {
@@ -18,6 +23,7 @@ type PX struct {
 	level          LogLevel
 	jobid          string // yyyymmdd_hhmmss_plan
 	payload        string // field name of the payload
+	// sequence       uint64
 
 	// mappings are the default things we read from a config
 	// file and apply to all things we log
