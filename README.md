@@ -45,6 +45,10 @@ Getting Started
 
 Releases
 --------------------------------------------------------------------
+### vNext (Features that aren't in a build)
+* Rename `pct` to `percent` in TOML files
+
+
 ### 0.33 (Internal)
 * JobID's are now in UTC
 * Improved logging

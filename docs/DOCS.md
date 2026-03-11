@@ -60,8 +60,8 @@ servers = [
     ]
 
 maxdop_cores = 2
-maxdop_pct = 50
-maxdop_pct_maxdop = 0 
+maxdop_percent = 50
+maxdop_percent_maxdop = 0 
 
 [log]
 # level = "debug"
@@ -82,6 +82,10 @@ physical_only = true
 estimate_only = false   
 extended_logical_checks = false 
 data_purity = false 
+
+# only check databases this size or smaller
+# very good for testing and ramping up
+max_size_mb = 100 
 
 [backup_history]
 retain_days = 90
@@ -117,10 +121,27 @@ blocked_timeout = "5m"
 There are three settings that control the MAXDOP that CHECKDB uses.
 
 * `maxdop_cores` - cap at an absolute number of cores 
-* `maxdop_pct` - cap at a percentage of the cores (rounded down)
-* `maxdop_pct_maxdop` - cap at a percentage of server MAXDOP rounded down
+* `maxdop_percent` - cap at a percentage of the cores (rounded down)
+* `maxdop_percent_maxdop` - cap at a percentage of server MAXDOP rounded down
 
 All these are optional.  If any of these are set, the MAXDOP is set at the lowest value from any of them providing it is lower than the server MAXDOP and server cores.
+
+SQL Server Agent Job
+--------------------
+* Create a domain service account to run the service
+* Grant the domain service account permissions as described above on each server
+* Create a Credential in SQL Server for that account
+* Create a SQL Server Agent Operating System (CmdExec) Proxy for that credential 
+* Create a folder for the application (for example, `D:\PopMaint`)
+* Grant the domain service account Modify permission on the folder
+* Extract the executable into a folder
+* Create a SQL Server Agent job and Job Step.  The step type should be `Operating System (CmdExec)` and the `run as` should be the Proxy from above.
+* Add the command to run PopMaint.  This needs to be on one line. `CD D:\PopMaint && D: && .\popmaint.exe phase1`
+    * We do the CD before switching to the drive to avoid permission problems
+    * It is best to be in the folder where the executable is before running the program
+    * PopMaint will exit with a non-zero status on error.  This can be tested with `popmaint.exe -exit 1`
+    * `popmaint.exe -version` will print the version and exit.  If the service account, doesn't have a home folder yet, this will show an error.  This can be ignored.
+
 
 Basic Logging (JSON)
 ------------------------------------------------------------------

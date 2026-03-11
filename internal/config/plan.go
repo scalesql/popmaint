@@ -93,7 +93,7 @@ func ReadPlan(name string) (Plan, error) {
 		return Plan{}, fmt.Errorf("invalid maxdop_cores: %d", plan.MaxDopCores)
 	}
 	if plan.MaxDopPercent < 0 || plan.MaxDopPercent > 100 {
-		return Plan{}, fmt.Errorf("invalid maxdop_pct: %d", plan.MaxDopPercent)
+		return Plan{}, fmt.Errorf("invalid maxdop_percent: %d", plan.MaxDopPercent)
 	}
 	if plan.CheckDB.DataPurity && plan.CheckDB.PhysicalOnly {
 		return Plan{}, fmt.Errorf("can't set data_purity and physical_only")
@@ -126,10 +126,10 @@ func (p Plan) MaxDop(serverCores, serverMaxdop int) (int, error) {
 		return 0, fmt.Errorf("invalid maxdop_cores: %d", p.MaxDopCores)
 	}
 	if p.MaxDopPercent < 0 || p.MaxDopPercent > 100 {
-		return 0, fmt.Errorf("invalid maxdop_pct: %d", p.MaxDopPercent)
+		return 0, fmt.Errorf("invalid maxdop_percent: %d", p.MaxDopPercent)
 	}
 	if p.MaxDopPercentMaxDop < 0 || p.MaxDopPercentMaxDop > 100 {
-		return 0, fmt.Errorf("invalid maxdop_pct_maxdop: %d", p.MaxDopPercent)
+		return 0, fmt.Errorf("invalid maxdop_percent_maxdop: %d", p.MaxDopPercent)
 	}
 
 	// if we didn't set any values, use the default
