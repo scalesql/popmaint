@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"log/slog"
 	"os"
 	"time"
@@ -22,14 +21,9 @@ func main() {
 	if len(os.Args) > 2 {
 		stmt = os.Args[2]
 	}
-	pool, err := sql.Open("sqlserver", server)
-	if err != nil {
-		log.Error(err.Error())
-		return
-	}
-	defer pool.Close()
+
 	// lockmon.TraceLogging = true // enable tracing
-	r := lockmon.ExecMonitor(ctx, log, pool, stmt, time.Duration(0), time.Duration(0), time.Duration(0))
+	r := lockmon.ExecMonitor(ctx, log, server, stmt, time.Duration(0), time.Duration(0), time.Duration(0))
 	if r.Err != nil {
 		log.Error(r.Err.Error())
 		return

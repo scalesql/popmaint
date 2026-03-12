@@ -18,7 +18,7 @@ import (
 func TestNilSQL(t *testing.T) {
 	assert := assert.New(t)
 	//pool := sql.DB{}
-	r := ExecMonitor(context.Background(), nil, nil, "", time.Duration(0), time.Duration(0), time.Duration(0))
+	r := ExecMonitor(context.Background(), nil, "", "", time.Duration(0), time.Duration(0), time.Duration(0))
 	assert.Error(r.Err)
 }
 
@@ -26,14 +26,14 @@ func TestNilSQL(t *testing.T) {
 //
 //	then we should be blocking that SQL
 
-func setupBlockingTable() (*sql.DB, error) {
+func setupBlockingTable() (*sql.DB, string, error) {
 	server := os.Getenv("POPMAINT_DBSERVER")
 	if server == "" {
-		return nil, fmt.Errorf("POPMAINT_DBSERVER must be set")
+		return nil, "", fmt.Errorf("POPMAINT_DBSERVER must be set")
 	}
 	pool, err := mssqlh.Open(server, "master")
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	_, err = pool.Exec(`
 		SET XACT_ABORT ON;
@@ -44,9 +44,9 @@ func setupBlockingTable() (*sql.DB, error) {
 		INSERT tempdb.dbo.popmaint_lockmon_test VALUES ('B');
 	`)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return pool, nil
+	return pool, server, nil
 }
 
 func teardownBlockingTable(pool *sql.DB) {
@@ -63,7 +63,7 @@ func TestBlocking(t *testing.T) {
 	t.Run("TestBlocked", func(t *testing.T) { // we are blocked by a session
 		require := require.New(t)
 		assert := assert.New(t)
-		pool, err := setupBlockingTable()
+		pool, fqdn, err := setupBlockingTable()
 		require.NoError(err)
 		defer pool.Close()
 		defer teardownBlockingTable(pool)
@@ -81,7 +81,7 @@ func TestBlocking(t *testing.T) {
 			wg.Done()
 		}(pool, &wg)
 		time.Sleep(500 * time.Millisecond)
-		result := ExecMonitor(context.Background(), consoleWriter{}, pool, `
+		result := ExecMonitor(context.Background(), consoleWriter{}, fqdn, `
 		WHILE @@TRANCOUNT > 0 ROLLBACK TRAN ;
 		BEGIN TRAN 
 			SELECT * FROM tempdb.dbo.popmaint_lockmon_test WITH(UPDLOCK, TABLOCK);
@@ -96,7 +96,7 @@ func TestBlocking(t *testing.T) {
 	t.Run("TestBlockingAnother", func(t *testing.T) {
 		require := require.New(t)
 		assert := assert.New(t)
-		pool, err := setupBlockingTable()
+		pool, fqdn, err := setupBlockingTable()
 		require.NoError(err)
 		defer pool.Close()
 		defer teardownBlockingTable(pool)
@@ -115,7 +115,7 @@ func TestBlocking(t *testing.T) {
 
 		}(pool, &wg)
 		time.Sleep(500 * time.Millisecond)
-		result := ExecMonitor(context.Background(), consoleWriter{}, pool, `
+		result := ExecMonitor(context.Background(), consoleWriter{}, fqdn, `
 		-- This TRAN should run first because of the WAITFOR above
 		SET XACT_ABORT ON; -- This is required to make this work
 		WHILE @@TRANCOUNT > 0 ROLLBACK TRAN ;
@@ -136,7 +136,7 @@ func TestBlocking(t *testing.T) {
 		require := require.New(t)
 		assert := assert.New(t)
 
-		pool, err := setupBlockingTable()
+		pool, fqdn, err := setupBlockingTable()
 		require.NoError(err)
 		defer pool.Close()
 		defer teardownBlockingTable(pool)
@@ -153,7 +153,7 @@ func TestBlocking(t *testing.T) {
 		}(pool)
 		time.Sleep(500 * time.Millisecond) // sometimes the second statement runs first
 		// run against the transaction with a 10 second blocked timeout
-		result := ExecMonitor(context.Background(), consoleWriter{}, pool, `
+		result := ExecMonitor(context.Background(), consoleWriter{}, fqdn, `
 		WHILE @@TRANCOUNT > 0 ROLLBACK TRAN ;
 		BEGIN TRAN 
 			SELECT 2 FROM tempdb.dbo.popmaint_lockmon_test WITH(UPDLOCK, TABLOCK);

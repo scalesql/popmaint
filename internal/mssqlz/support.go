@@ -1,6 +1,14 @@
 package mssqlz
 
-import "golang.org/x/text/unicode/norm"
+import (
+	"database/sql"
+	"os"
+	"path/filepath"
+
+	"github.com/billgraziano/mssqlh/v2"
+	"github.com/scalesql/popmaint/internal/zerr"
+	"golang.org/x/text/unicode/norm"
+)
 
 // TrimSQL returns the left most characters of a string
 // it should handle unicode/utf8 without splitting characters
@@ -38,4 +46,36 @@ func TrimSQL(str string, n int) string {
 		result += "..."
 	}
 	return result
+}
+
+// PoolWithSuffix generates a *sql.DB for the given host and database.
+// The application name is the executable name.  If a suffix is provided,
+// it is appended so it looks like appname.exe-suffix.
+// The database defaults to master.  It also runs a Ping() to verify
+// the connection is working.
+func PoolWithSuffix(host, database, suffix string) (*sql.DB, error) {
+	// Get the EXE name
+	exe, err := os.Executable()
+	if err != nil {
+		return nil, zerr.Wrap(err, "os.executable")
+	}
+	appname := filepath.Base(exe)
+
+	if database == "" {
+		database = "master"
+	}
+	if suffix != "" {
+		appname += "-" + suffix
+	}
+
+	conn := mssqlh.NewConnection(host, "", "", database, appname)
+	pool, err := conn.Open()
+	if err != nil {
+		return nil, zerr.Wrap(err, "conn.open")
+	}
+	err = pool.Ping()
+	if err != nil {
+		return nil, zerr.Wrap(err, "pool.ping")
+	}
+	return pool, nil
 }

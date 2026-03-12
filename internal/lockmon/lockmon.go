@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scalesql/popmaint/internal/build"
 	"github.com/scalesql/popmaint/internal/failure"
+	"github.com/scalesql/popmaint/internal/mssqlz"
 )
 
 // Enable extra logging mostly for DEV
@@ -37,7 +38,6 @@ var ErrBlocking = fmt.Errorf("blocking detected")
 
 type monitor struct {
 	log     ExecLogger
-	pool    *sql.DB
 	spid    int16
 	timeout time.Duration
 	ch      chan Result
@@ -47,14 +47,25 @@ type monitor struct {
 // This will log any errors in the SQL that runs.
 // It will return blocking errors, or errors detecting blocking.
 // It will also set a flag that it encountered an error.
-func ExecMonitor(ctx context.Context, log ExecLogger, pool *sql.DB, stmt string, timeout, blocking, blocked time.Duration) Result {
-	if pool == nil {
-		return Result{Err: fmt.Errorf("pool is nil")}
+func ExecMonitor(ctx context.Context, log ExecLogger, host string, stmt string, timeout, blocking, blocked time.Duration) Result {
+
+	// setupt the two connection pools
+	workpool, err := mssqlz.PoolWithSuffix(host, "master", "worker")
+	if err != nil {
+		return Result{Err: fmt.Errorf("mssqlz.poolwithsuffix.worker: %w", err)}
 	}
+	defer workpool.Close()
+
+	// setup the monitor pool
+	monpool, err := mssqlz.PoolWithSuffix(host, "master", "monitor")
+	if err != nil {
+		return Result{Err: fmt.Errorf("mssqlz.poolwithsuffix.monitor: %w", err)}
+	}
+	defer monpool.Close()
+
 	if log == nil {
 		log = nilwriter{}
 	}
-
 	var cancel context.CancelFunc
 	if ctx == nil {
 		ctx = context.Background()
@@ -65,7 +76,7 @@ func ExecMonitor(ctx context.Context, log ExecLogger, pool *sql.DB, stmt string,
 	defer cancel()
 
 	// get one connection we will use to run the statement
-	conn, err := pool.Conn(ctx)
+	conn, err := workpool.Conn(ctx)
 	if err != nil {
 		return Result{Err: errors.Wrap(err, "pool.conn")}
 	}
@@ -87,14 +98,13 @@ func ExecMonitor(ctx context.Context, log ExecLogger, pool *sql.DB, stmt string,
 
 	mon := monitor{
 		log:     log,
-		pool:    pool,
 		spid:    spid,
 		timeout: timeout,
 		ch:      ch,
 	}
 
 	go mon.runStmt(ctx, conn, stmt, log)
-	go mon.runMonitor(ctx, blocking, blocked)
+	go mon.runMonitor(ctx, monpool, blocking, blocked, log)
 
 	// get the first result. this is all we really care about
 	// this will be the blocking monitor or the actual SQL result
@@ -107,7 +117,11 @@ func ExecMonitor(ctx context.Context, log ExecLogger, pool *sql.DB, stmt string,
 	return results
 }
 
-func (mon *monitor) runMonitor(ctx context.Context, blocking, blocked time.Duration) {
+func (mon *monitor) runMonitor(ctx context.Context, pool *sql.DB, blocking, blocked time.Duration, log ExecLogger) {
+	if pool == nil {
+		log.Error("runmonitor: pool is nil")
+		return
+	}
 	defer failure.HandlePanic(build.Commit(), build.Built().Format(time.RFC3339))
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
@@ -117,7 +131,7 @@ out:
 		case <-ctx.Done():
 			break out // there is a send down below
 		case <-ticker.C:
-			sessions, err := getBlocking(ctx, mon.pool, mon.spid, blocking, blocked)
+			sessions, err := getBlocking(ctx, pool, mon.spid, blocking, blocked)
 			if err != nil {
 				if errors.Is(err, context.Canceled) {
 					// if the context is canceled, send a message on the channel so we don't block

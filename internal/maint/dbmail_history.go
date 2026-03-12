@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/billgraziano/mssqlh/v2"
 	"github.com/scalesql/popmaint/internal/config"
 	"github.com/scalesql/popmaint/internal/lockmon"
 	"github.com/scalesql/popmaint/internal/mssqlz"
@@ -13,12 +12,6 @@ import (
 
 // DBMailHistory deletes old backup history records from the msdb database
 func DBMailHistory(ctx context.Context, logger lockmon.ExecLogger, server mssqlz.Server, plan config.Plan, noexec bool) error {
-	// open connection
-	pool, err := mssqlh.Open(server.FQDN, "msdb")
-	if err != nil {
-		return err
-	}
-	defer pool.Close()
 
 	// build the command
 	stmt := fmt.Sprintf(`
@@ -31,7 +24,7 @@ func DBMailHistory(ctx context.Context, logger lockmon.ExecLogger, server mssqlz
 
 	// run the command
 	if !noexec {
-		result := lockmon.ExecMonitor(ctx, logger, pool, stmt, time.Duration(plan.DBMailHistory.StatementTimeout),
+		result := lockmon.ExecMonitor(ctx, logger, server.FQDN, stmt, time.Duration(plan.DBMailHistory.StatementTimeout),
 			time.Duration(plan.DBMailHistory.BlockingTimeout), time.Duration(plan.DBMailHistory.BlockedTimeout))
 		if result.Sessions != nil {
 			if len(result.Sessions) > 0 {
