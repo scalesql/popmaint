@@ -45,9 +45,10 @@ Getting Started
 
 Releases
 --------------------------------------------------------------------
-### vNext (Features that aren't in a build)
+### 0.40 (March 2026)
 * Rename `pct` to `percent` in TOML files
-
+* Add `SET XACT_ABORT` ON to the dbmail purge
+* Lock monitor uses a separate connection pool
 
 ### 0.33 (Internal)
 * JobID's are now in UTC
@@ -56,7 +57,6 @@ Releases
     * Added support for log file location, file name templates, and UTC times
     * Log file clean up is conditional based on settings
 * Improved MAXDOP calculation
-* Improved logging
 * Fixed formatting on the documentation
 * Skip database snapshots
 * Add `statement_timeout` option
