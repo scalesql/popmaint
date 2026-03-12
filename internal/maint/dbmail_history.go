@@ -15,6 +15,7 @@ func DBMailHistory(ctx context.Context, logger lockmon.ExecLogger, server mssqlz
 
 	// build the command
 	stmt := fmt.Sprintf(`
+		SET XACT_ABORT ON;
 		DECLARE @limit DATE = DATEADD(dd, -%d, GETDATE()); 
 		EXEC msdb.dbo.sysmail_delete_log_sp @logged_before = @limit;
 		EXEC msdb.dbo.sysmail_delete_mailitems_sp	@sent_before = @limit;`,
