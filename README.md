@@ -45,6 +45,9 @@ Getting Started
 
 Releases
 --------------------------------------------------------------------
+### vNext 
+* Add an `xid()` function to add [xid](https://github.com/rs/xid) value to logging
+
 ### 0.40 (March 2026)
 * Rename `pct` to `percent` in TOML files
 * Add `SET XACT_ABORT` ON to the dbmail purge

@@ -225,6 +225,7 @@ The following functions return values:
 * `jobid()` - the job ID which is `yyyymmdd_hhmmss_plan`
 * `plan()` - the name of the plan
 * `now()` - Current time in UTC
+* `xid()` - a new globally unique ID ([rs/xid](https://github.com/rs/xid)) generated for each log entry
 
 The following functions manipulate the results:
 

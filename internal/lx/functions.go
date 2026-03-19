@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/rs/xid"
 )
 
 func (px *PX) applyFuncs(m map[string]any) (map[string]any, []error) {
@@ -39,6 +41,8 @@ func (px *PX) applyFuncs(m map[string]any) (map[string]any, []error) {
 			}
 		case "now()":
 			m[fld.K] = time.Now().UTC()
+		case "xid()":
+			m[fld.K] = xid.New().String()
 		default: // handle the cached function results
 			if px.cached != nil {
 				cons, ok := px.cached[fn]

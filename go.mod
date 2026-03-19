@@ -15,6 +15,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.2
 	github.com/pkg/errors v0.9.1
 	github.com/pressly/goose/v3 v3.24.1
+	github.com/rs/xid v1.6.0
 	github.com/stretchr/testify v1.10.0
 	gitlab.com/greyxor/slogor v1.2.10
 	golang.org/x/term v0.28.0
