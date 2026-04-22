@@ -38,6 +38,7 @@ var ErrBlocking = fmt.Errorf("blocking detected")
 
 type monitor struct {
 	log     ExecLogger
+	server  string
 	spid    int16
 	timeout time.Duration
 	ch      chan Result
@@ -83,9 +84,9 @@ func ExecMonitor(ctx context.Context, log ExecLogger, host string, stmt string, 
 	defer conn.Close()
 
 	// get the SPID for that session
-	spid, err := getSessionID(ctx, conn)
+	server, spid, err := getServerAndSession(ctx, conn)
 	if err != nil {
-		return Result{Err: errors.Wrap(err, "getsession")}
+		return Result{Err: errors.Wrap(err, "getserverandsession")}
 	}
 	if TraceLogging {
 		log.Debug(fmt.Sprintf("spid=%d", spid))
@@ -97,6 +98,7 @@ func ExecMonitor(ctx context.Context, log ExecLogger, host string, stmt string, 
 	defer close(ch)
 
 	mon := monitor{
+		server:  server,
 		log:     log,
 		spid:    spid,
 		timeout: timeout,
@@ -199,28 +201,28 @@ func (mon *monitor) execStmtContext(ctx context.Context, conn *sql.Conn, stmt st
 		// get the message from the server
 		msg := retmsg.Message(ctx)
 		if TraceLogging {
-			log.Info(fmt.Sprintf("msg: %T", msg))
+			log.Info(fmt.Sprintf("[%s] msg: %T", mon.server, msg))
 		}
 		switch m := msg.(type) {
 		case sqlexp.MsgNotice:
-			log.Info(m.Message.String()) // this is the actual PRINT/RAISERROR message
+			log.Info(fmt.Sprintf("[%s] %s", mon.server, m.Message.String())) // this is the actual PRINT/RAISERROR message
 
 			// handle any errors in this message
 			// this captures KILL from the server
 			switch e := m.Message.(type) {
 			case mssql.Error:
-				qe = handleError(log, e)
+				qe = handleError(mon.server, log, e)
 			}
 		case sqlexp.MsgError:
-			log.Error(FormatRootError(m.Error))
+			log.Error(fmt.Sprintf("[%s] %s", mon.server, FormatRootError(m.Error)))
 			errs = append(errs, m.Error)
 			loggedErrors = true
-			qe = handleError(log, m.Error)
+			qe = handleError(mon.server, log, m.Error)
 		case sqlexp.MsgRowsAffected:
 			if m.Count == 1 {
-				log.Info("(1 row affected)")
+				log.Info(fmt.Sprintf("[%s] (1 row affected)", mon.server))
 			} else {
-				log.Info(fmt.Sprintf("(%d rows affected)", m.Count))
+				log.Info(fmt.Sprintf("[%s] (%d rows affected)", mon.server, m.Count))
 			}
 		case sqlexp.MsgNextResultSet:
 			// if no more rows, this will fall though because
@@ -230,10 +232,10 @@ func (mon *monitor) execStmtContext(ctx context.Context, conn *sql.Conn, stmt st
 				// This is where "context canceled" errors shows up
 				// which is context.Canceled
 				if !errors.Is(err, context.Canceled) {
-					return true, fmt.Errorf("statement_timeout exceeded: %s", mon.timeout.String())
+					return true, fmt.Errorf("[%s] statement_timeout exceeded: %s", mon.server, mon.timeout.String())
 				}
 				// otherwise, the error is likely a SQL Server
-				qe = handleError(log, err)
+				qe = handleError(mon.server, log, err)
 				loggedErrors = true
 				errs = append(errs, err)
 
@@ -259,13 +261,14 @@ func (mon *monitor) execStmtContext(ctx context.Context, conn *sql.Conn, stmt st
 	return loggedErrors, errors.New("errors occurred")
 }
 
-func getSessionID(ctx context.Context, conn *sql.Conn) (int16, error) {
+func getServerAndSession(ctx context.Context, conn *sql.Conn) (string, int16, error) {
+	var server string
 	var spid int16
-	err := conn.QueryRowContext(ctx, "SELECT @@SPID;").Scan(&spid)
+	err := conn.QueryRowContext(ctx, "SELECT @@SERVERNAME, @@SPID;").Scan(&server, &spid)
 	if err != nil {
-		return 0, errors.Wrap(err, "select @@spid")
+		return "", 0, errors.Wrap(err, "select @@servername, @@spid")
 	}
-	return spid, err
+	return server, spid, err
 }
 
 func getBlocking(ctx context.Context, pool *sql.DB, spid int16, blocking, blocked time.Duration) ([]Session, error) {
@@ -313,7 +316,7 @@ func getBlocking(ctx context.Context, pool *sql.DB, spid int16, blocking, blocke
 
 // handleError handles any errors returned in a message.  This code is mostly copied from
 // github.com/microsoft.com/sqlcmd/pgk/sqlcmd/sqlcmd.go.
-func handleError(log ExecLogger, err error) error {
+func handleError(server string, log ExecLogger, err error) error {
 	if err == nil {
 		return nil
 	}
@@ -330,7 +333,7 @@ func handleError(log ExecLogger, err error) error {
 		errSeverity = sqlError.Class
 		errState = sqlError.State
 		if TraceLogging {
-			log.Info(fmt.Sprintf("Msg %d, Level %d, State %d", errNumber, errSeverity, errState))
+			log.Info(fmt.Sprintf("[%s] Msg %d, Level %d, State %d", server, errNumber, errSeverity, errState))
 		}
 	case mssql.StreamError:
 		return sqlError
