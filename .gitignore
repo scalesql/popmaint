@@ -28,6 +28,9 @@ go.work.sum
 /plans
 /deploy
 /notes
+/cmd/runsql
+
+
 *.json
 *.toml
 *.cmd

@@ -122,7 +122,7 @@ func Run(cmdLine CommandLine, getenv func(string) string) int {
 	}
 
 	// Read the plan.toml file
-	plan, err := config.ReadPlan(cmdLine.Plan)
+	plan, err := config.ReadPlan(cmdLine.Plan, getenv)
 	if err != nil {
 		logger.Error(fmt.Errorf("config.readplan: %w", err).Error())
 		var details *toml.StrictMissingError

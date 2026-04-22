@@ -57,7 +57,7 @@ type Plan struct {
 	} `toml:"agent_history" json:"agent_history"`
 }
 
-func ReadPlan(name string) (Plan, error) {
+func ReadPlan(name string, getenv func(string) string) (Plan, error) {
 	plan := Plan{Name: name}
 	// TODO -- sort the sections and run them in order
 	fileName := fmt.Sprintf("%s.toml", name)
