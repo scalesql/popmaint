@@ -120,6 +120,7 @@ func ExecMonitor(ctx context.Context, log ExecLogger, host string, stmt string, 
 }
 
 func (mon *monitor) runMonitor(ctx context.Context, pool *sql.DB, blocking, blocked time.Duration, log ExecLogger) {
+	var count976 = 0
 	if pool == nil {
 		log.Error("runmonitor: pool is nil")
 		return
@@ -139,6 +140,19 @@ out:
 					// if the context is canceled, send a message on the channel so we don't block
 					break out // there is a send down below
 				}
+
+				// check for error 976, if there are less than 10, keep going
+				// https://github.com/scalesql/popmaint/issues/7
+				var sqlErr mssql.Error
+				if errors.As(err, &sqlErr) { // if this is a SQL Server error
+					if sqlErr.Number == 976 {
+						count976++
+						if count976 < 10 { // if 976 and < 10, just keep polling
+							continue
+						}
+					}
+				}
+
 				// if there is an error getting blocking, kill the whole thing and return
 				// likely the server restarted or disconnected or something
 				// just exit and live to fight another day

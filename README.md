@@ -47,6 +47,7 @@ Releases
 --------------------------------------------------------------------
 ### vNext 
 * Add an `xid()` function to add [xid](https://github.com/rs/xid) value to logging
+* Ignore up to 10 Error 976s in the monitoring thread.  See https://github.com/scalesql/popmaint/issues/7.  This is a bug in SQL Server we are coding around.
 
 ### 0.40 (March 2026)
 * Rename `pct` to `percent` in TOML files
